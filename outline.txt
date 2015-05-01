@@ -1,0 +1,79 @@
+## Three main parts:
+
+ - Algorithm
+ - Implementation
+ - Case study
+
+## Algorithm:
+
+ - CTL, operator equivalence, choice of operators
+
+ 	- Describe CTL and it's relationship with LTL
+ 	- Define equivalence on operators, thus showing minimal operator set
+ 	- Describe problems of distributed search for SCC and related choice of operator set
+ 
+ - Under/Over problem and comparison to LTL
+
+ 	- Describe ACTL and ECTL
+ 	- Show how mixing of these two types of logic riuns the guarantees of over/under approximation
+
+ - Idea of colored model Checking
+
+ 	- Reasoning behind single pass vs. multiple pass optimality
+ 	- Discuss comapct prameter space representation
+ 	- Point out that this is a heuristic - no asmptotic gain can come out of this
+
+ - CTL Model Checking
+
+ 	- Idea of backwward propagation of results
+ 	- Drawbacks: High memory requirements
+ 	- Globality == good for parameter sythesis
+
+ - Partitioning
+
+ 	- Idea of partition function and state space fragments
+
+ - Algorithm description
+
+ 	- Pseudocode for temporal operators
+ 	- Partial proofs of termination and correctenss
+ 	- Discussion about complexity
+ 	- Termination detection (Fixpoint detection)
+
+Models and modeling approaches:
+
+ - ODE
+
+ 	- discretization, abstraction - ramps, etc.
+ 	- continuous parameter space
+ 	- locality
+ 	- approximations
+
+ - Boolean 
+
+ 	- parameter space explosion
+ 	- exact, discrete
+
+Implementation:
+
+ - Employed technologies
+ 	- Java and MPJ - multiplatform, guava, network-bound algorithm
+
+ - Modular architecture
+ 	
+ 	- General model checker + each module defines one model
+ 	- Ease of development at cost of performence
+
+ - Perforemnce optimizations 
+ 	- merge queue  - benefit of chaos and distribution
+ 	- gc settings - todo
+ 	- formula quivalence - not really interesting? Maybe remove?
+
+Case study:
+
+ - Interesting properties
+ 	- Bistability
+ - Scaleability
+ 	- Protein production
+ - Results compared with numeric simulation
+ - Boolean network

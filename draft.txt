@@ -1,0 +1,51 @@
+
+In this section, we introduce PKS as an input for our algorithm and define 
+
+## Kripke structure
+
+Algorithm described in this work opererates on Parametrised Kripke Structures(PKS) defined in [cite]. PKS is a tuple .... where ....
+...
+...
+
+For fixed p in P, K(p) is a standard (non-parametrised) Kripke Structure. 
+We write s -(p)> t ....
+
+Note that we do not require transition relation to be total. However, we assume that the non-totality is introdeced only by the partitioning process and therefore the input of the algorithm is considered to be a total PKS. In order to accomodate for possible non totality, we define a custom assumption semantics described in one of the following sections.
+
+## CTL
+
+In order to correctly express various hypotheses in systems biology, the idea of branching time is need. Examples of such hypotheses are given in section [Case Study]. Therefore, this work uses the Computation Tree Logic(CTL) as means of hypotheses formulation. 
+
+CTL syntax is defined inductively upon finite set of atomic propositions. It uses standard boolean operators enhanced with set of temporal operators EX, EU and AU:
+
+					definition
+
+In order to reduce complexity of algorithm description, we only operate on these three temporal operators. However, other commonly used temporal operators can be defined using EX, EU, AU:
+EF = EU
+....
+
+Therefore our tool allowes for the formula to be specified using the full set of temporal operators and normalizes the formula using transformations mentioned above.
+
+## Parameter Sythesis Problem
+
+This work considers a parameter synthesis problem as described in [cite]. We are given a PKS K and a CTL formula phi. For each state s let Ps = (params satisfying phi in s) where |=K(p) denotes that phi is satisfied in state s of K(p). The parameter synthesis problem requires us to compute function F: S->2^P such that ...
+
+To compute such parameter values, a procedure called colored model checking is employed. Colored model checking operates 
+
+## Kripke Fragments
+
+In order to distribute the state space of large PKS to several network nodes, we use a partition function f : S -> {1...n}. Possible implementations of such function are described later. 
+
+The partitioning process starts with a total PKS K and results in set of (possibly non-total) PKS K1...Kn where Ki is defined as
+S = (s in S | f(s) = i or (t -p-> s and f(t) = i)
+P = P
+-> = ((s,p,s') | f(s) = i)
+...
+
+This work referes to these non-total substructures of PKS as fragments. For each fragment, we also define a set of border states border(K) = (....). Intuitively, border states are states that are not directly part of the fragment Ki (their f(s) != i), but have predecessors in fragment Ki. In our algorithm, they represent the missing part of the state space residing in memory of other network nodes. 
+
+## Assumption semantics
+
+To accomodate for possibly non-total kripke fragments, we define an assumption function A : x x x.... Intuitively, A(...) = tt if we can assume that phi holds for state s under parametrisation p, A(...) = ff if ... and A(...) = undef if .... Let us denote AS as set of all assumption functions for phi and K.
+
+We consider a semantic function 
