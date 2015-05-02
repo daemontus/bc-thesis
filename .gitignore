@@ -1,3 +1,7 @@
+# Logo extra files
+fi-logo600.*
+!fi-logo.mf
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
