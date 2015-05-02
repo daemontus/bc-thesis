@@ -14,6 +14,11 @@
 ]{hyperref}
 \usepackage{blindtext}            % Lorem ipsum generator
 
+ % Algorithms
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{algpseudocode}
+
 \thesislang{en}                   % The language of the thesis
 \thesistitle{Parameter Synthesis from Hypotheses Formulable in CTL Logic}       % The title of the thesis
 \thesissubtitle{Bachelor Thesis}  % The type of the thesis
@@ -22,6 +27,33 @@
 \thesisfaculty{fi}                % Your faculty
 \thesisyear{Spring \the\year}     % The academic term of your thesis defense
 \thesisadvisor{John Foo, Ph.D.}   % Your advisor
+
+
+% Macros for definitions
+% Assumptions
+\newcommand{\as}[1][]{\ensuremath{\mathcal{A}_{#1}}}
+\newcommand{\asemt}{\as[\perp]}
+\newcommand{\ASphi}{\ensuremath{AS_{\mathcal K}^\phi}}
+
+%True, false
+\newcommand{\true}{\ensuremath{\texttt{tt}}}
+\newcommand{\false}{\ensuremath{\texttt{ff}}}
+
+% Kripke
+\newcommand{\ks}[1][]{\ensuremath{\mathcal{K}_{#1}}}
+\newcommand{\fullks}{\ensuremath{ \ks = (id, f, \params, S, I, \trans{p}, L) }}
+\newcommand{\trans}[1]{\stackrel{#1}{\rightarrow}}
+\newcommand{\params}{\mathcal{P}}
+
+%Temporal
+\newcommand{\eu}[2]{\ensuremath{\mbox{E} #1 \mbox{U} #2 }}
+\newcommand{\au}[2]{\ensuremath{\mbox{A} #1 \mbox{U} #2 }}
+\newcommand{\ex}[1]{\ensuremath{\mbox{EX} #1}}
+\newcommand{\ax}[1]{\ensuremath{\mbox{AX} #1}}
+\newcommand{\ef}[1]{\ensuremath{\mbox{EF} #1}}
+\newcommand{\af}[1]{\ensuremath{\mbox{AF} #1}}
+\newcommand{\eg}[1]{\ensuremath{\mbox{EG} #1}}
+\newcommand{\ag}[1]{\ensuremath{\mbox{AG} #1}}
 
 \begin{document}
   \FrontMatter                    % The front matter
@@ -46,8 +78,101 @@
   \MainMatter                     % The main matter
     \chapter{Introduction}          % Chapters
 	Lorem Ipsum \cite{testCite}
-    \chapter{Another chapter}
-    \Blindtext
+    \chapter{Algorithm}
+    	
+    	\section{Common operations}
+    		
+    		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrized kripke fragment $\fullks$ as input of the algorithm.
+			
+			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed. 
+
+			\begin{center}
+				$validStates(\phi, \as) = \{ (s, p) \mid \as(s, p, \phi) = \true \} $
+			\end{center}
+			
+			Function $predecessors : S \rightarrow S \times 2^\mathcal{P} $ computes set of direct predecessors of given node including the color sets labeling the appropriate transitions.
+			
+			\begin{center}
+				$predecessors(to) = \{ (from, P) \mid P = \{ p \mid from \trans{p} to \} \} $
+			\end{center}
+			
+			Symetrically, $successors : S \rightarrow S \times 2^\mathcal{P} $ computes set of direct successors of given node including the color sets labeling the appropriate transitions.
+
+			\begin{center}
+				$predecessors(from) = \{ (to, P) \mid P = \{ p \mid from \trans{p} to \} \} $
+			\end{center}		
+    
+   		\section{Exist Next Operator}
+			\begin{algorithmic}[1]
+			\State $ \textbf{Process variables:} $
+			\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
+			\State $ \phi = \ex{\phi_1}  $ \Comment{CTL formula}
+			\State $ \as $ \Comment{Initial assumption function}
+			\Procedure{Init}{}
+				\ForAll {$state$ \textbf{in} $ validStates(\phi_1, \as, \ks) $}
+					\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
+						\State $ \Call{Send}{f(state), (pred, \mathcal{P} \cup tranCol)} $
+					\EndFor
+				\EndFor
+			\EndProcedure
+			\Procedure{Receive}{$colSet, to$}
+				\State $ \as \gets \as \cup \{ (p, to, \phi) \mid p \in colSet \}$
+			\EndProcedure
+			\end{algorithmic}	
+			
+    	\section{Exist Until Operator}
+			\begin{algorithmic}[1]
+			\State $ \textbf{Process variables:} $
+			\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
+			\State $ \phi = \eu{\phi_1}{\phi_2}  $ \Comment{CTL formula}
+			\State $ \as $ \Comment{Initial assumption function}
+			\Procedure{Init}{}
+				\ForAll {$state$ \textbf{in} $ validStates(\phi_2, \as, \ks) $}
+					\State $ \as \gets \as \cup (\mathcal{P}, state, \phi) $
+					\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
+						\State $ \Call{Send}{f(state), (state, pred, \mathcal{P} \cup tranCol)} $
+					\EndFor
+				\EndFor
+			\EndProcedure
+			\Procedure{Receive}{$colSet, from, to$}
+				\State $ colSet \gets colSet \cap valid(\phi_1, to, \as)$
+				\If{$ colSet \neq \emptyset $ \textbf{and} $ colSet \setminus valid(\phi, to, \as) \neq \emptyset $}
+					\State $ \as \gets \as \cup (colSat, to, \phi)$
+					\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to, \ks) $ }
+						\State $ \Call{Send}{f(pred), (to, pred, colSat \cup tranCol)} $
+					\EndFor
+				\EndIf
+			\EndProcedure
+			\end{algorithmic}	
+			
+			
+	    \section{All Until Operator}
+			\begin{algorithmic}[1]
+			\State $ \textbf{Process variables:} $
+			\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
+			\State $ \phi = \au{\phi_1}{\phi_2}  $ \Comment{CTL formula}
+			\State $ S = \emptyset $
+			\State $ \as $ \Comment{Initial assumption function}
+			\Procedure{Init}{}
+				\ForAll {$state$ \textbf{in} $ validStates(\phi_2, \ks) $}
+					\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
+						\State $ \Call{Send}{f(state), (state, pred, \mathcal{P} \cup tranCol)} $
+					\EndFor
+				\EndFor
+			\EndProcedure
+			\Procedure{Receive}{$colSet, from, to$}	
+				\State $ S \gets S \cup (to, from, colSet) $
+				\State $ colSet \gets colSet \cap valid(\phi_1, to, \ks)$
+				\If{$ colSet \neq \emptyset $ \textbf{and} $ colSet \setminus valid(\phi, to, \ks) \neq \emptyset $}
+					\State $ \as \gets \as \cup (colSat, to, \phi)$
+					\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to, \ks) $ }
+						\State $ \Call{Send}{f(pred), (to, pred, colSat \cup tranCol)} $
+					\EndFor
+				\EndIf
+			\EndProcedure
+			\end{algorithmic}	
+			
+			
     \appendix
     \chapter{First appendix}        % Appendices
     \Blindtext
