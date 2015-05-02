@@ -16,7 +16,7 @@
 
  % Algorithms
 \usepackage{algorithm}
-\usepackage[noend]{algpseudocode}
+%\usepackage[noend]{algpseudocode}
 \usepackage{algpseudocode}
 
 \thesislang{en}                   % The language of the thesis
@@ -79,10 +79,29 @@
     \chapter{Introduction}          % Chapters
 	Lorem Ipsum \cite{testCite}
     \chapter{Algorithm}
+    
+    	In this chapter, we describe the distributed algorithm that computes the assumption function $\as$. We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers equals the result set of the partition function.
+    	
+		\section{Algorithm outline}
+		
+			The main idea of the algorithm is described in REFERENCE and resembles other CTL model checking algorithms.
+			
+			\begin{algorithmic}[1]
+				\Procedure{CheckCTL}{$ \phi, \fullks $}
+					\State $ \as \gets \{ (p, s, \alpha) \mid  p \in \params \wedge \alpha \in L(s) \}$ 
+					\ForAll { $ i < | \phi | $ }					
+					\ForAll { $ \psi $ \textbf{in} $ cl(\phi) $ \textbf{where} $ | \psi | = i $ }
+						\State $ \as \gets \Call{CheckFormula}{\psi, \ks, \as } $
+					\EndFor
+					\EndFor
+				\EndProcedure			
+			\end{algorithmic} 
+			
+			The algorithm starts by initializing the assumption function with atomic propositions.
     	
     	\section{Common operations}
     		
-    		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrized kripke fragment $\fullks$ as input of the algorithm.
+    		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrised kripke fragment $\fullks$ as input of the algorithm.
 			
 			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed. 
 
@@ -96,7 +115,7 @@
 				$predecessors(to) = \{ (from, P) \mid P = \{ p \mid from \trans{p} to \} \} $
 			\end{center}
 			
-			Symetrically, $successors : S \rightarrow S \times 2^\mathcal{P} $ computes set of direct successors of given node including the color sets labeling the appropriate transitions.
+			Symmetrically, function $successors : S \rightarrow S \times 2^\mathcal{P} $ computes set of direct successors of given node including the color sets labeling the appropriate transitions.
 
 			\begin{center}
 				$predecessors(from) = \{ (to, P) \mid P = \{ p \mid from \trans{p} to \} \} $
