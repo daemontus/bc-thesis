@@ -87,12 +87,14 @@
     	
     	\section{Distributed Environment}
     	
-		In this section, we briefly describe the distributed environment assumed by our algorithm, in order to prevent any possible confusion. 
+		In this section, we briefly describe the distributed environment assumed by our algorithm, in order to prevent any possible confusion.
 		
-		We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers equals the result set of the partition function. 
+		We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers is equal to the result set of the partition function. Each process can communicate directly (using the function \method{Send}) with any other process (assuming it knows other process's identifier) and all messages that can't be processed directly are stored in a queue until they can be processed.
 		
 		Several parts of the algorithm do not have explicit termination (they terminate by reaching deadlock - no messages are exchanged between processes). In such cases, suitable termination detection algorithm is employed to detect this deadlock and terminate computation properly. Our implementation uses Safra's algorithm [CITATION] for this purpose, but the related code has been skipped for easier readability.
     	
+		We also divide algorithm description into three main parts: Process variables, Initialization and Message handler. First section describes data structures stored in process memory available during whole computation. Initialization section is executed exactly once and no messages can be received until it's finished. Message handler defines what should happen when message is received.  
+		
 		\section{Algorithm outline}
 		
 			The main idea of the algorithm is described in REFERENCE and resembles other CTL model checking algorithms.
@@ -145,6 +147,7 @@
 			\end{center}		
     
    		\section{Exist Next Operator}
+   		
 			\begin{algorithmic}[1]
 			\State $ \textbf{Process variables:} $
 			\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
