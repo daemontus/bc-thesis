@@ -114,8 +114,20 @@
     		
     		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrised kripke fragment $\fullks$ as input of the algorithm.
 			
-			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed.
-
+			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed. It is also responsible for handling of boolean operators, since these can be computed without any inter-process communication. 
+			
+			\begin{center}
+				$validStates(\phi_1 \wedge \phi_2, \as) = \{ (s, p) \mid \as(s, p, \phi_2) = \true \wedge \as(s, p, \phi_2) = \true \} $
+			\end{center}
+			
+			\begin{center}
+				$validStates(\phi_1 \vee \phi_2, \as) = \{ (s, p) \mid \as(s, p, \phi_2) = \true \vee \as(s, p, \phi_2) = \true \} $
+			\end{center}
+			
+			\begin{center}
+				$validStates(\neg\phi, \as) = \{ (s, p) \mid \as(s, p, \phi_2) = \false \} $
+			\end{center}
+			
 			\begin{center}
 				$validStates(\phi, \as) = \{ (s, p) \mid \as(s, p, \phi) = \true \} $
 			\end{center}
