@@ -127,7 +127,7 @@
 			\end{center}
 			
 			\begin{center}
-				$validStates(\neg\phi, \as) = \{ (s, p) \mid \as(s, p, \phi_2) = \false \} $
+				$validStates(\neg\phi, \as) = \{ (s, p) \mid \as(s, p, \phi) = \false \} $
 			\end{center}
 			
 			\begin{center}
@@ -145,50 +145,56 @@
 			\begin{center}
 				$predecessors(from) = \{ (to, P) \mid P = \{ p \mid from \trans{p} to \} \} $
 			\end{center}		
-    
-   		\section{Exist Next Operator}
-   		
-			\begin{algorithmic}[1]
-			\State $ \textbf{Process variables:} $
-			\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
-			\State $ \phi = \ex{\phi_1}  $ \Comment{CTL formula}
-			\State $ \as $ \Comment{Initial assumption function}
-			\Procedure{Init}{}
-				\ForAll {$state$ \textbf{in} $ validStates(\phi_1, \as, \ks) $}
-					\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
-						\State $ \Call{Send}{f(state), (pred, \mathcal{P} \cup tranCol)} $
-					\EndFor
-				\EndFor
-			\EndProcedure
-			\Procedure{Receive}{$colSet, to$}
-				\State $ \as \gets \as \cup \{ (p, to, \phi) \mid p \in colSet \}$
-			\EndProcedure
-			\end{algorithmic}	
 			
-    	\section{Exist Until Operator}
-			\begin{algorithmic}[1]
-			\State $ \textbf{Process variables:} $
-			\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
-			\State $ \phi = \eu{\phi_1}{\phi_2}  $ \Comment{CTL formula}
-			\State $ \as $ \Comment{Initial assumption function}
-			\Procedure{Init}{}
-				\ForAll {$state$ \textbf{in} $ validStates(\phi_2, \as, \ks) $}
-					\State $ \as \gets \as \cup (\mathcal{P}, state, \phi) $
-					\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
-						\State $ \Call{Send}{f(state), (state, pred, \mathcal{P} \cup tranCol)} $
+		\section{Temporal Operators}
+    
+    		In this section, we describe how the \method{CheckFormula} is implemented for each of the temporal operators. Note that all of the following algorithms has implicit termination and therefore needs a proper termination detection algorithm to correctly terminate.
+    		
+	   		\subsection{Exist Next Operator}
+   			   			
+				\begin{algorithmic}[1]
+				\State $ \textbf{Process variables:} $
+				\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
+				\State $ \phi = \ex{\phi_1}  $ \Comment{CTL formula}
+				\State $ \as $ \Comment{Initial assumption function}
+				\Procedure{Init}{}
+					\ForAll {$(state, colSet)$ \textbf{in} $ validStates(\phi_1, \as, \ks) $}
+						\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
+							\State $ \Call{Send}{f(state), (pred, colSet \cup tranCol)} $
+						\EndFor
 					\EndFor
-				\EndFor
-			\EndProcedure
-			\Procedure{Receive}{$colSet, from, to$}
-				\State $ colSet \gets colSet \cap valid(\phi_1, to, \as)$
-				\If{$ colSet \neq \emptyset $ \textbf{and} $ colSet \setminus valid(\phi, to, \as) \neq \emptyset $}
-					\State $ \as \gets \as \cup (colSat, to, \phi)$
-					\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to, \ks) $ }
-						\State $ \Call{Send}{f(pred), (to, pred, colSat \cup tranCol)} $
+				\EndProcedure
+				\Procedure{Receive}{$colSet, to$}
+					\State $ \as \gets \as \cup \{ (p, to, \phi, \true) \mid p \in colSet \}$
+				\EndProcedure
+				\end{algorithmic}	
+				
+				The simplest of temporal operators is the \ex{} operator. During initialization, all states and colors where $\phi$ holds
+			
+    		\subsection{Exist Until Operator}
+				\begin{algorithmic}[1]
+				\State $ \textbf{Process variables:} $
+				\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
+				\State $ \phi = \eu{\phi_1}{\phi_2}  $ \Comment{CTL formula}
+				\State $ \as $ \Comment{Initial assumption function}
+				\Procedure{Init}{}
+					\ForAll {$state$ \textbf{in} $ validStates(\phi_2, \as, \ks) $}
+						\State $ \as \gets \as \cup (\mathcal{P}, state, \phi) $
+						\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
+							\State $ \Call{Send}{f(state), (state, pred, \mathcal{P} \cup tranCol)} $
+						\EndFor
 					\EndFor
-				\EndIf
-			\EndProcedure
-			\end{algorithmic}	
+				\EndProcedure
+				\Procedure{Receive}{$colSet, from, to$}
+					\State $ colSet \gets colSet \cap valid(\phi_1, to, \as)$
+					\If{$ colSet \neq \emptyset $ \textbf{and} $ colSet \setminus valid(\phi, to, \as) \neq \emptyset $}
+						\State $ \as \gets \as \cup (colSat, to, \phi)$
+						\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to, \ks) $ }
+							\State $ \Call{Send}{f(pred), (to, pred, colSat \cup tranCol)} $
+						\EndFor
+					\EndIf
+				\EndProcedure
+				\end{algorithmic}	
 			
 			
 	    \section{All Until Operator}
