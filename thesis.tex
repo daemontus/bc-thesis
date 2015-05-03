@@ -35,6 +35,9 @@
 \newcommand{\asemt}{\as[\perp]}
 \newcommand{\ASphi}{\ensuremath{AS_{\mathcal K}^\phi}}
 
+% Algorithm
+\newcommand{\method}[1]{\textnormal{\textsc{#1}}}
+
 %True, false
 \newcommand{\true}{\ensuremath{\texttt{tt}}}
 \newcommand{\false}{\ensuremath{\texttt{ff}}}
@@ -80,7 +83,15 @@
 	Lorem Ipsum \cite{testCite}
     \chapter{Algorithm}
     
-    	In this chapter, we describe the distributed algorithm that computes the assumption function $\as$. We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers equals the result set of the partition function.
+    	In this chapter, we describe the distributed algorithm that computes the assumption function $\as$. 
+    	
+    	\section{Distributed Environment}
+    	
+		In this section, we briefly describe the distributed environment assumed by our algorithm, in order to prevent any possible confusion. 
+		
+		We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers equals the result set of the partition function. 
+		
+		Several parts of the algorithm do not have explicit termination (they terminate by reaching deadlock - no messages are exchanged between processes). In such cases, suitable termination detection algorithm is employed to detect this deadlock and terminate computation properly. Our implementation uses Safra's algorithm [CITATION] for this purpose, but the related code has been skipped for easier readability.
     	
 		\section{Algorithm outline}
 		
@@ -88,22 +99,22 @@
 			
 			\begin{algorithmic}[1]
 				\Procedure{CheckCTL}{$ \phi, \fullks $}
-					\State $ \as \gets \{ (p, s, \alpha) \mid  p \in \params \wedge \alpha \in L(s) \}$ 
+					\State $ \as \gets \{ (p, s, \alpha, \true) \mid  p \in \params \wedge \alpha \in L(s) \}$ 
 					\ForAll { $ i < | \phi | $ }					
-					\ForAll { $ \psi $ \textbf{in} $ cl(\phi) $ \textbf{where} $ | \psi | = i $ }
-						\State $ \as \gets \Call{CheckFormula}{\psi, \ks, \as } $
-					\EndFor
+						\ForAll { $ \psi $ \textbf{in} $ cl(\phi) $ \textbf{where} $ | \psi | = i $ }
+							\State $ \as \gets \Call{CheckFormula}{\psi, \ks, \as } $
+						\EndFor
 					\EndFor
 				\EndProcedure			
 			\end{algorithmic} 
 			
-			The algorithm starts by initializing the assumption function with atomic propositions.
+			The algorithm starts by initializing the assumption function using the labeling function defined in kripke fragment. After that, it traverses the structure of formula, starting from smallest formulas and uses computed results to process more complex formulas. Function \method{CheckFormula} computes all states and colors where formula $\psi$ holds and returns assumption function updated accordingly. This is done using the local information contained in given kripke fragment, assumptions previously computed for smaller formulas and also by communicating with other processes. Note that only assumptions relevant for particular process are computed and returned (each process has information only about it's own state space).
     	
     	\section{Common operations}
     		
     		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrised kripke fragment $\fullks$ as input of the algorithm.
 			
-			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed. 
+			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed.
 
 			\begin{center}
 				$validStates(\phi, \as) = \{ (s, p) \mid \as(s, p, \phi) = \true \} $
