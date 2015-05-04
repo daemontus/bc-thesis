@@ -114,7 +114,7 @@
     	
     	\section{Common operations}
     		
-    		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrised kripke fragment $\fullks$ as input of the algorithm.
+    		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrised kripke fragment $\fullks$ as an input of the algorithm.
 			
 			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed. It is also responsible for handling of boolean operators, since these can be computed without any inter-process communication. 
 			
@@ -145,6 +145,15 @@
 			\begin{center}
 				$predecessors(from) = \{ (to, P) \mid P = \{ p \mid from \trans{p} to \} \} $
 			\end{center}		
+
+			We also define function $update: \ASphi \times S \times 2^{\params} \times tcl(\phi) \rightarrow \ASphi $ which takes current assumptions, a state, set of parameters and a formula and returns assumptions updated so that for all parameters of the given set, formula holds in given state.
+			
+			\begin{algorithmic}
+				\State $ update(\as, state, colours, \phi): $
+				\ForAll { $ p \in colours $}
+					\State Set $ \as(state, p, \phi) = \true $
+				\EndFor 
+			\end{algorithmic}
 			
 		\section{Temporal Operators}
     
