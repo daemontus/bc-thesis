@@ -131,7 +131,21 @@
 			\end{center}
 			
 			\begin{center}
+				$validStates(\true, \as) = \{ (s, p) \mid s \in S \wedge p \in \params \} $
+			\end{center}
+
+			\begin{center}
+				$validStates(\false, \as) = \emptyset $
+			\end{center}
+						
+			\begin{center}
 				$validStates(\phi, \as) = \{ (s, p) \mid \as(s, p, \phi) = \true \} $
+			\end{center}
+
+			Another useful function is $validColours : cl(\phi) \times S \times \ASphi \rightarrow 2^\mathcal{P}	$ which returns a set of parameters for which given formula is assumed to be true in given state. 
+			
+			\begin{center}
+				$validColours(\phi, state, \as) = \{ p | (state, p) \in validStates \}$
 			\end{center}
 			
 			Function $predecessors : S \rightarrow S \times 2^\mathcal{P} $ computes set of direct predecessors of given node including the color sets labeling the appropriate transitions.
@@ -167,18 +181,18 @@
 				\State $ \phi = \ex{\phi_1}  $ \Comment{CTL formula}
 				\State $ \as $ \Comment{Initial assumption function}
 				\Procedure{Init}{}
-					\ForAll {$(state, colSet)$ \textbf{in} $ validStates(\phi_1, \as, \ks) $}
-						\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
-							\State $ \Call{Send}{f(state), (pred, colSet \cup tranCol)} $
+					\ForAll {$(state, colSet)$ \textbf{in} $ validStates(\phi_1, \as) $}
+						\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state) $ }
+							\State $ \Call{Send}{f(state), (pred, colSet \cap tranCol)} $
 						\EndFor
 					\EndFor
 				\EndProcedure
 				\Procedure{Receive}{$colSet, to$}
-					\State $ \as \gets \as \cup \{ (p, to, \phi, \true) \mid p \in colSet \}$
+					\State $ \as \gets update(\as, to, colSet, \phi)$
 				\EndProcedure
 				\end{algorithmic}	
 				
-				The simplest of temporal operators is the \ex{} operator. During initialization, all states and colors where $\phi$ holds
+				The simplest of temporal operators is the \ex{} operator. During initialization, all states and colors where $\phi$ holds are computed. For each of such states, all predecessors are considered and appropriate message that will cause assumption update is sent.
 			
     		\subsection{Exist Until Operator}
 				\begin{algorithmic}[1]
@@ -187,52 +201,57 @@
 				\State $ \phi = \eu{\phi_1}{\phi_2}  $ \Comment{CTL formula}
 				\State $ \as $ \Comment{Initial assumption function}
 				\Procedure{Init}{}
-					\ForAll {$state$ \textbf{in} $ validStates(\phi_2, \as, \ks) $}
-						\State $ \as \gets \as \cup (\mathcal{P}, state, \phi) $
-						\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
-							\State $ \Call{Send}{f(state), (state, pred, \mathcal{P} \cup tranCol)} $
+					\ForAll {$(state, colSet) $ \textbf{in} $ validStates(\phi_2, \as) $}
+						\State $ \as \gets update(\as, state, colSet, \phi) $
+						\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state) $ }
+							\State $ \Call{Send}{f(state), (pred, colSet \cap tranCol)} $
 						\EndFor
 					\EndFor
 				\EndProcedure
-				\Procedure{Receive}{$colSet, from, to$}
+				\Procedure{Receive}{$colSet, state$}
 					\State $ colSet \gets colSet \cap valid(\phi_1, to, \as)$
 					\If{$ colSet \neq \emptyset $ \textbf{and} $ colSet \setminus valid(\phi, to, \as) \neq \emptyset $}
-						\State $ \as \gets \as \cup (colSat, to, \phi)$
-						\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to, \ks) $ }
-							\State $ \Call{Send}{f(pred), (to, pred, colSat \cup tranCol)} $
+						\State $ \as \gets update(\as, to, colSet, \phi) $
+						\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to) $ }
+							\State $ \Call{Send}{f(pred), (pred, colSat \cap tranCol)} $
 						\EndFor
 					\EndIf
 				\EndProcedure
 				\end{algorithmic}	
 			
+				The \eu{}{} operator is a little more complex, but again fairly simple. The algorithm starts by computing all states and colours where $\phi_2$ is true. Starting from these states, a backpropagation of parameter sets along the reversed transitions is performed. During the computation, the propagated parameter set is updated to reflect the validity of $\phi_1$ and the validity of transitions used along the path. Note that backpropagation is stoped as soon as there is no new information computed ($colSat$ is either empty or equal to already computed assumptions).
 			
-	    \section{All Until Operator}
-			\begin{algorithmic}[1]
-			\State $ \textbf{Process variables:} $
-			\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
-			\State $ \phi = \au{\phi_1}{\phi_2}  $ \Comment{CTL formula}
-			\State $ S = \emptyset $
-			\State $ \as $ \Comment{Initial assumption function}
-			\Procedure{Init}{}
-				\ForAll {$state$ \textbf{in} $ validStates(\phi_2, \ks) $}
-					\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state, \ks) $ }
-						\State $ \Call{Send}{f(state), (state, pred, \mathcal{P} \cup tranCol)} $
+		    \subsection{All Until Operator}
+				\begin{algorithmic}[1]
+				\State $ \textbf{Process variables:} $
+				\State $ \ks = (id, f, \mathcal{P}, S, I, \trans{p}, L) $ \Comment{Kripke fragment}
+				\State $ \phi = \au{\phi_1}{\phi_2}  $ \Comment{CTL formula}
+				\State $ T = \trans{p} $ \Comment{Uncovered edges}
+				\State $ \as $ \Comment{Initial assumption function}
+				\Procedure{Init}{}
+					\ForAll {$(state, colSet) $ \textbf{in} $ validStates(\phi_2) $}
+						\ForAll { $ (pred, tranCol) $ \textbf{in} $ predecessors(state) $ }
+							\State $ \Call{Send}{f(state), (state, pred, \mathcal{P} \cap tranCol)} $
+						\EndFor
 					\EndFor
-				\EndFor
-			\EndProcedure
-			\Procedure{Receive}{$colSet, from, to$}	
-				\State $ S \gets S \cup (to, from, colSet) $
-				\State $ colSet \gets colSet \cap valid(\phi_1, to, \ks)$
-				\If{$ colSet \neq \emptyset $ \textbf{and} $ colSet \setminus valid(\phi, to, \ks) \neq \emptyset $}
-					\State $ \as \gets \as \cup (colSat, to, \phi)$
-					\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to, \ks) $ }
-						\State $ \Call{Send}{f(pred), (to, pred, colSat \cup tranCol)} $
-					\EndFor
-				\EndIf
-			\EndProcedure
-			\end{algorithmic}	
-			
-			
+				\EndProcedure
+				\Procedure{Receive}{$colSet, from, to$}	
+					\State $ T \gets T \setminus \{ (to, p, from) | p \in colSet \} $
+					\State $ colSet \gets \{ p | p \in colSet \wedge \forall s_2 \in S. (to, p, s_2) \notin T \} $
+					\State $ colSet \gets colSet \cap valid(\phi_1, to, \as)$
+					\If{$ colSet \neq \emptyset $ \textbf{and} $ colSet \setminus valid(\phi, to, \as) \neq \emptyset $}
+						\State $ \as \gets update(\as, to, colSet, \phi) $
+						\ForAll {$(pred, tranCol) $ \textbf{in} $ predecessors(to) $ }
+							\State $ \Call{Send}{f(pred), (to, pred, colSet \cap tranCol)} $
+						\EndFor
+					\EndIf
+				\EndProcedure
+				\end{algorithmic}	
+				
+				The \au{}{} operator is the most complex one to handle. As opposed to \ex{}{}, which requires at least one valid successor to be true, \au{}{} requires that all successors of the specific node are valid. In order to compute such information, we create a copy of transition relation and call it $T$. 
+				
+				During the computiation, $T$ is modified in such way, so that we can guarantee that if edge is not present in $T$, this edge leads to a state where either $\phi_2$ or \au{\phi_2}{\phi2} holds.
+					
     \appendix
     \chapter{First appendix}        % Appendices
     \Blindtext
