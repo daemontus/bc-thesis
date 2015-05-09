@@ -94,7 +94,7 @@
 				\item $\params$ is a finite set of parameters (all possible parameter valuations)
 				\item $S$ is a finite set of states
 				\item $S_0 \subseteq S$ is a set of initial states
-				\item $\trans{} \subseteq S \times \params \times S$ is a transition relation labeled by parameter valuations 
+				\item $\trans{} \subseteq S \times \params \times S$ is a total transition relation labeled by parameter valuations 
 				\item $L: S \rightarrow 2^{AP} $ is a labeling function from states to sets of atomic propositions which are true in such states
 			\end{itemize} 		
 			
@@ -160,17 +160,88 @@
 		
 			Due to the state space explosion, given parametrised Kripke structure can be very large and therefore impossible to fit into memory of one computer. In order to solve parameter synthesis problem for such structures, we have to distribute the state space across several computational nodes. To this end, we introduce the notion of parametrised kripke fragments.
 			
-			A parametrised Kripke structure $\ks$ can be divided into several parametrised Kripke fragments $\kf{1}{\ks}, \kf{2}{\ks}, \cdots , \kf{N}{\ks}$. Parametrised Kripke fragment over Kripke structure $\fullKs$ is then defined as a tuple $\fullKf{i}{\ks}$ where:
+			A parametrised Kripke structure $\ks$ can be divided into several parametrised Kripke fragments $\kf{1}{\ks}, \kf{2}{\ks}, \cdots , \kf{N}{\ks}$ using a partition function $f$. Parametrised Kripke fragment with identifier $i$ over Kripke structure $\fullKs$ is then defined as a tuple $\fullKf{i}{\ks}$ where:
 			
 			\begin{itemize}
-				\item $f : S \rightarrow \{1, \cdots , N \}$ is a partition function from all states to fragment indexes
+				\item $f : S \rightarrow \{1, \cdots , N \}$ is a partition function from all states to fragment identifiers
 				\item $\params$ is a finite set of all parameters
 				\item $S_{i} = \{ s \in S \mid f(s) = i \vee \exists s'\in S. ((s \trans{} s' \vee s' \trans{} s) \wedge f(s') = i \}$ is a subset of original state space which belongs to this fragment
 				\item $I_{i} = \{ s \in S_0 \mid s \in S_{i} \} $ is a set of all fragments initial states
-				\item $\trans{}_{i} = \{ (s, p, s') \in \trans{} \mid s \in S_{i} \wedge s' \in S_{i} \}$ is a subset of original transition function reduced to only relevant states
+				\item $\trans{}_{i} = \{ (s, p, s') \in \trans{} \mid s \in S_{i} \wedge s' \in S_{i} \wedge (f(s) = i \vee f(s') = i) \}$ is a subset of original transition function reduced to only relevant states (not required to be total)
 				\item $L_{i} = \{ (s, l) \in L \mid f(s) = i \}$ is a labeling subset of original labeling function relevant to this fragment
 			\end{itemize}
 						
+			In the following text, we will often omit the superscript $\ks$ if it is clear from context.
+			
+			Intuitively, Kripke fragment represents a subset of the original kripke structure defined by the partition function. It contains all nodes specified by the partition function with all their direct successors and predecessors and all corresponding transitions. 			
+			
+			We define a set of border states $border(\kf{i}{\ks}) = \{ s \in S_{i} \mid f(s) \neq i \}$. Intuitively, these states represent the remaining portion of the state space which is stored in memory of other processes and is not directly accessible. We say that state is an \emph{internal state} if it is not a border state. We also define a set of cross edges as $cross(\kf{i}{\ks}) = \{ (s, p, s') \in \trans{}_{i} \mid s' \in border(\kf{i}{\ks}) \vee s \in border(\kf{i}{\ks}) \}$. Intuitively, these are edges leading from border states to internal states or vice versa. 
+			
+			Note that for a constant partition function $f(s) = 1$ and any given kripke structure, the partitioning results in one fragment with an unchanged state space and an unchanged transition relation (The sets of border states and cross edges are empty for the resulting fragment). Similarly, for every Kripke structure, there exists a partition function for which $N = |S|$ and every resulting fragment contains only one internal state. Under such partitioning, all edges are cross edges. 
+			
+			In worst case (connected graphs), such partitioning results in fragments with $|S| - 1$ border states and one internal state (there is no way to achieve higher state count in fragment than in the original structure). Therefore we can assume that $\sum\limits_{i=1}^N | S_i | \leq |S|^2 $, hence the number of introduced border states is at worst quadratic in terms of original state space. The number of internal states remains the same.
+
+			This increase seems rather high, however, it is important to note that this also requires one process for each original state. In real life scenarios, the number of states per process is usually much higher. Also note that the representation of border state in memory is usually much simpler (and smaller) than representation of internal state, so even a distribution with high border state count can be beneficial in terms of memory consumption. 
+						
+			In terms of edges, in the worst case, each edge has to be contained in two fragments (where either of the end states is an internal state), therefore the total number of edges is at worst doubled.			
+			
+			The number of border states and cross edges is also highly dependent on the partition function. It is usually best to design the partition function with specific model or modeling approach in mind in order to achieve optimal workload distribution. We will discuss different partition functions later in the text. 
+			
+			For each kripke fragment $\kf{i}{}$, we define a relation $successors \subseteq S_{i} \times 2^\params \times S_{i} $ to denote the set of colors for which there exist a transition from the first to the second state.
+			
+			\begin{center}
+				$successors = \{(s, P, s') \mid P = \{p \in \params \mid (s, p, s') \in \trans{}_{i} \}\} $
+			\end{center}
+			
+		\section{Assumption Semantics}
+		
+			Classic interpretation of CTL formulas is not adequate for Kripke fragments. In order to accommodate for possible non-totality and distributed nature of the Kripke fragments over Kripke structure $\fullKs$, we introduce the assumption function $\as : \params \times S \times cl(\varphi) \rightarrow Bool $. The values $\as(s, p, \varphi_1)$ are called assumptions. We use the notation $\as(p, s, \varphi_1) = \perp $ to say that the value of $\as(s, p, \varphi_1)$ is undefined. By $\asemt$ we denote assumption function which is undefined for all inputs.
+			
+			Intuitively, $\as(s, p, \varphi_1) = \true$ when we can assume that $\varphi_1$ holds in state $s$ for parameter valuation $p$, $\as(s, p, \varphi_1) = \false$ when we can assume that $\varphi_1$ does not hold in state $s$ for parameter valuation $p$ and $\as(s, p, \varphi_1) = \perp$ when we cannot assume anything about validity of $\varphi_1$ in state $s$ for parameter valuation $p$.
+			
+			Undefined values are important in CTL semantics over distributed fragments, since such values can be used in places where validity of formula cannot be computed because it depends on information stored in another fragment which has not been received yet. However, a correct model checking algorithm should always provide a definitive answer for all states and parameter valuations.
+			
+			For a Kripke fragment $\fullKf{i}{}$ and a formula $\varphi$, the assumption function is defined inductively on the structure of the formula $\varphi$:
+			
+			\begin{center}								
+				\[\as(p, s, Q) = \left\{ 
+  					\begin{array}{l l}
+					    \true & \quad Q \in L(s)\\
+					   	\false & \quad otherwise\\
+				  \end{array} 
+				\right.\]
+			\end{center}
+			
+			\begin{center}								
+				\[\as(p, s, \neg \varphi_1) = \left\{ 
+  					\begin{array}{l l}
+					    \true & \quad \as(p, s, \varphi_1) = \false\\
+					   	\false & \quad \as(p, s \varphi_1) = \true\\
+					   	\perp & \quad otherwise\\
+				  \end{array} 
+				\right.\]
+			\end{center}
+			
+			\begin{center}								
+				\[\as(p, s, \varphi_1 \wedge \varphi_2) = \left\{ 
+  					\begin{array}{l l}
+					    \true & \quad \as(p, s, \varphi_1) = \true $ and $ \as(p, s, \varphi_2) = \true\\
+					   	\false & \quad \as(p, s \varphi_1) = \false $ or $ \as(p, s, \varphi_2) = \false\\
+					   	\perp & \quad otherwise\\
+				  \end{array} 
+				\right.\]
+			\end{center}			
+			
+			\begin{center}								
+				\[\as(p, s, \ex{\varphi_1}) = \left\{ 
+  					\begin{array}{l l}
+					    \true & \quad \exists s' \in S : s \trans{p} s' \wedge \as(p, s', \varphi_1) = \true\\
+					   	\false & \quad \forall s' \in S : s \trans{p} s' \Rightarrow \as(p, s', \varphi_1) = \false\\
+					   	\perp & \quad otherwise\\
+				  \end{array} 
+				\right.\]
+			\end{center}			
+			
 		
     \chapter{Algorithm}
     
@@ -180,7 +251,7 @@
     	
 		In this section, we briefly describe the distributed environment assumed by our algorithm, in order to prevent any possible confusion.
 		
-		We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers is equal to the result set of the partition function. Each process can communicate directly (using the function \method{Send}) with any other process (assuming it knows other process's identifier) and all messages that can't be processed directly are stored in a queue until they can be processed.
+		We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers is equal to the result set of the partition function. Each process can communicate directly (using the function \method{Send}) with any other process (assuming it knows other process's identifier). We assume that each message can be transmitted in $O(1)$ time and all messages that can't be processed directly are stored in a queue until they can be processed.
 		
 		Several parts of the algorithm do not have explicit termination (they terminate by reaching deadlock - no messages are exchanged between processes). In such cases, suitable termination detection algorithm is employed to detect this deadlock and terminate computation properly. Our implementation uses Safra's algorithm [CITATION] for this purpose, but the related code has been skipped for easier readability.
     	
@@ -239,17 +310,6 @@
 				$validColours(\phi, state, \as) = \{ p | (state, p) \in validStates \}$
 			\end{center}
 			
-			We also write $successors_{\ks} : S \rightarrow S \times 2^\mathcal{P} $ which computes set of direct successors of given node including the color sets labeling the appropriate transitions.
-
-			\begin{center}
-				$predecessors(from) = \{ (to, P) \mid P = \{ p \mid from \trans{p} to \} \} $
-			\end{center}		
-			
-			Symmetrically, function $predecessors : S \rightarrow S \times 2^\mathcal{P} $ computes set of direct predecessors of given node including the color sets labeling the appropriate transitions.
-			
-			\begin{center}
-				$predecessors(to) = \{ (from, P) \mid P = \{ p \mid from \trans{p} to \} \} $
-			\end{center}
 			We also define function $update: \ASphi \times S \times 2^{\params} \times tcl(\phi) \rightarrow \ASphi $ which takes current assumptions, a state, set of parameters and a formula and returns assumptions updated so that for all parameters of the given set, formula holds in given state.
 			
 			\begin{algorithmic}
@@ -283,6 +343,16 @@
 				\end{algorithmic}	
 				
 				The simplest of temporal operators is the \ex{} operator. During initialization, all states and colors where $\phi$ holds are computed. For each of such states, all predecessors are considered and appropriate message that will cause assumption update is sent.
+				
+				If formula is marked as valid in state $s$ for color $p$, it means a message containing such state and color has been received. This can only happen if said state has a successor under color $p$ where $\varphi_1$ holds. Therefore no false positive results are produced. Also, for each state where $\varphi_1$ holds for color $p$, a message is sent for all predecessors of such state. Therefore all states where $\ex{\varphi_1}$ holds are labeled accordingly. Since all correct states are labeled and no false positives are possible, the algorithm is correct.
+				
+				In the worst case, algorithm has to send every color over every edge, therefore worst case message complexity is $card(\trans{}_{i})$. In practice, message count is usually much lower, since multiple colors can be packed into one message.
+				
+				Assuming the validity of $\varphi_1$ is computed for all states, function $validStates(\varphi_1, \as)$ can be computed in $O(|internal(S_{i})| \cdot |\params|)$. The function $predecessors$ can be pre-computed for all states in $O(card(\trans{}_{i}))$ time. The procedure \method{Send} is called at most $card(\trans{}_{i})$ times and the parameter set intersection is at worst linear in the size of parameter space. 
+				
+				This would result in $O(|\params| \cdot card(\trans{}_{i}))$ complexity. However, this can be further reduced to $O(card(\trans{}_{i}))$ since we can observe that for every predecessor where $|tranCol| > 1$, only one message is sent instead of $|tranCol|$ messages. The color set intersection can also be performed in $O(|tranCol|)$ time. This means that the price of set intersection is amortized by the reduced number of transmitted messages. 
+				
+				
 			
     		\subsection{Exist Until Operator}
 				\begin{algorithmic}[1]
