@@ -410,7 +410,64 @@
 				
 				The \au{}{} operator is the most complex one to handle. As opposed to \ex{}{}, which requires at least one valid successor to be true, \au{}{} requires that all successors of the specific node are valid. In order to compute such information, we create a copy of transition relation and call it $T$. 
 				
-				During the computation, $T$ is modified in such way, so that we can guarantee that if edge is not present in $T$, this edge leads to a state where either $\phi_2$ or \au{\phi_1}{\phi_2} holds. This way, we can guarantee that only appropriate states and colors are marked as valid by our algorithm.
+				During the computation, $T$ is modified in such way, so that we can guarantee that if edge is not present in $T$, this edge leads to a state where either $\phi_2$ or \au{\phi_1}{\phi_2} holds. This way, we can guarantee that only appropriate states and colors are marked as valid by our algorithm.				
+	
+	\chapter{Implementation}
+
+		Our algorithm is implemented in a proof-of-concept distributed CTL model checker available in the github repositiory of Sybila organization [cite]. In this section we briefly discuss the implementation details of this project. 
+		
+		Although most of the core model checking module is fully operational and stable, the project is still mainly in experimental phase, since new features, heuristics and modelling approaches are still being considered and reevaluated.
+
+		\section{Architecture}
+		
+			In order to provde greater flexibility and ease of development, majority of the project is implemented in Java. However, several parts still require C++ code reused from similar previous projects. 
+			
+			The distributed environment is mainly provided by MPJ [cite], Java implementation of standard MPI interface. However, the model checking algorithm itself does not depend on any concrete communication library and can be easily adapted to any similar distributed communication tool.
+			
+			The whole project is divided into several modules in order to maximize extensibility and modifiability during future development. This section provides a quick overview of each of these modules.
+			
+			\subsection{CTL Parser}
+			
+				In order to provide user with easy way to input CTL formulas, this module implements a parser for modified formula specification language used in BioDivIne[cite]. 
+				
+				The original parser only supports LTL formulas, therefore the grammar has been modified to allow for CTL operators. However, user familiar with the original LTL syntax should have no problems adapting to the CTL syntax.
+				
+				The grammar is written in Antlr parser generator and apart from the whole range of CTL and boolean operators supports also boolean and float propositions.
+				
+				This module also handles the transformation of user provided formula into minimal set of operators supported by the main model checker.
+				
+			\subsection{Model Checker}
+			
+				This is the core module implementing the model checking algorithm described in this work. It defines the interfaces and contracts representing the kripke fragment, parameter set, partition function and inter-process communication.
+				
+				It is completely independant on the implementation of said interfaces, and therefore provides great flexibility and extensibility. This module also provides partial implementations of some of these interfaces to ease the development of model related modules. 
+				
+				This module also implements the termination detection algorithm designed by Safra[cite]. The algorithm itself can't be easily overriden, however, the communication is again isolated into one, easily replacable class, so the support for different communcation libraries can be easily provided.
+	
+			\subsection{ODE Abstraction}
+			
+				This module is based on the ODE state space generator from the LTL model checking tool BioDiViNe. The code responsible for model parsing and abstraction calculation is reused directly and Java Native Interface(JNI) is used to extract resulting model into corresponding Java data structures.
+				
+				The state space generator responsible for evaluation of atomic propositions and computation of successors/predecessors is also based on code from the BioDiViNe project. However, this section has been completely rewritten into Java and adapted to the CTL paradigm. This minimizes the number of slow JNI calls to existing C++ code. This new state space generator also features several bugfixes and speed optimalizations.
+				
+				This module also implements the rectangular state space partition function described in this work. The parameter set is implemented using Google Guava Range Set[cite] which provides great flexibility and huge feature set while maintaining good performance.
+				
+			\subsection{Thomas Network Abstraction}
+
+				This module is based on the Thomas Network state space generator from the LTL model checking tool Parsybone. Similarly to the ODE Abstraction module, most of the model parsing and preprocessing is done using the original code and extracted using JNI. 
+				
+				The parameter set is implemented using a EWAH Compressed Bitmap[cite], which provides decent performance even on large parameter sets and is very easy to use. 
+				
+				At the moment of writing, this module does not provide any good partitioning implementation, since much of this functionality is still in developement and most of the current implementation is subject to change. However, sequential computation on one processing node is fully supported.
+				
+			\subsection{Frontend}			
+			
+				Frontend module ties together the functionality of all modules into several runnable utilities. However, the documentation and general outilne and output format of these tools have not yet been finalized and is subject to change. Therfore the code in this module should be taken more as an example of usage of different modules.
+				
+		\section{Merge queue}
+			
+					
+		
 					
     \appendix
     \chapter{First appendix}        % Appendices
