@@ -410,7 +410,51 @@
 				
 				The \au{}{} operator is the most complex one to handle. As opposed to \ex{}{}, which requires at least one valid successor to be true, \au{}{} requires that all successors of the specific node are valid. In order to compute such information, we create a copy of transition relation and call it $T$. 
 				
-				During the computation, $T$ is modified in such way, so that we can guarantee that if edge is not present in $T$, this edge leads to a state where either $\phi_2$ or \au{\phi_1}{\phi_2} holds. This way, we can guarantee that only appropriate states and colors are marked as valid by our algorithm.				
+				During the computation, $T$ is modified in such way, so that we can guarantee that if edge is not present in $T$, this edge leads to a state where either $\phi_2$ or \au{\phi_1}{\phi_2} holds. This way, we can guarantee that only appropriate states and colors are marked as valid by our algorithm.
+				
+								
+		\section{Merge message buffer}
+			
+			The main argument of coloured model checking efficiency is based on the assumption that operations on parameter sets are in practice less expensive than graph traversal. However, even a simple model structure can easily break the computation into many simultanious traversals. When two different colour sets are marked as valid in a state due to two distinct transitions, unfortunate timing can easily prevent these two colour sets from merging into one. This leads to two outgoing messages instead of one, which in the end results in two separate graph traversals instead of one. 
+			
+			In some cases, this simply cannot be avoided, since in order to know exactly when to wait for a merge and when to continue the traversal, we would basically have to solve the coloured model checking problem. However, we can take advantage of the fact, that many messages cannot be processed directly at the time of arrival, since message processing can be quite costly operation, especially when the transition system is being lazily calculated. Therefore we use a message buffer to store incomming messages that cannot be processed directly.
+			
+			These bufferes can grow quite large during the computation and even outgrow the state space of the transition system itself. Of course, it would be easy to just slow down the creation of messages to prevent the buffers from growing. However, many messages in these buffers contain data that are either duplicate or can be merged into one message while maintaining correct semantics.
+			
+			In order to reduce to the number of unnecessary graph traversals and reduce memory footprint of message buffers while maintaining good performance, we employ a merge message buffer as described in [REFERENCE]. 
+			
+			In this text, we only provide the implementation for messages that contian destination node and colour set as used in $\ex{}$ and $\eu{}{}$ operators. However, the implementation for messages used by $\au{}{}$ operator can be obtained trivially by replacing all occurences of destination node with pair of destination and source nodes.
+			
+			\begin{algorithmic}[1]
+			\State $ \textbf{MergeBuffer} $
+			\State $ Q \gets IterableHashMap $
+			\Procedure{Insert}{node, colours}
+				\If {$Q$ \textbf{hasKey} $node$}
+					\State $current \gets Q.get(node)$
+					\State $Q.replace(node, colours \cup current)$
+				\Else
+					\State $Q.insert(node, colours)$				
+				\EndIf
+			\EndProcedure
+			\Procedure{Empty}{}
+				\State \Return $Q.isEmpty()$
+			\EndProcedure
+			\Procedure{Take}{}
+				\State $val \gets Q.interator().first()$
+				\State $Q.remove(val.key)$
+				\State \Return $val$
+			\EndProcedure
+			\end{algorithmic}				
+			
+			Key property of the buffer is that it is backed by an $IterableHashMap$. Compared to traditional $HashMap$, $IterableHashMap$ provides also an iterator on all of its key-value pairs. This gives us the ability to take one (non-deterministic) element out of the map in constant time. Considering a reasonable hash function on the node set, we can guarantee that each operation on the underlying $IterableHashSet$ can be done in constant time. Therefore the only interesting operation in terms of time complexity is the union of two colour sets, which can be done in $O(\params)$ complexity.
+			
+			It is important to note that the resulting buffer does not preserve the FIFO properties of a queue. However, this is not required by the algorithm (actually, performing a random search instead of classic DFS is considered a valid optimalization heuristic).
+			
+			We do not provide exhaustive benchmark of this heuristic, since the main priority of this work is the model checking algorithm itself. However, a comparison with linked queue and circular buffer on models tested in the Scalability section showed that merge queue easily outperforms both of them especially in highly distributed environments. Linked queue was usually two times slower while circular buffer managed to provide approximately 60-80\% of the merge buffer performance. 
+			
+			One reason for this is the fact that more distributed computations have generally more cross transitions. This increases the cost of traversal compared to parameter set operations which in turn makes the merge buffer more effective. Also, the properties of this buffer allow in some cases for super-linear scalablilty, since greater number of processes can produce higher number of merged traversals. 
+			
+							
 	
 	\chapter{Implementation}
 
@@ -462,11 +506,7 @@
 				
 			\subsection{Frontend}			
 			
-				Frontend module ties together the functionality of all modules into several runnable utilities. However, the documentation and general outilne and output format of these tools have not yet been finalized and is subject to change. Therfore the code in this module should be taken more as an example of usage of different modules.
-				
-		\section{Merge queue}
-			
-					
+				Frontend module ties together the functionality of all modules into several runnable utilities. However, the documentation and general outilne and output format of these tools have not yet been finalized and is subject to change. Therfore the code in this module should be taken more as an example of usage of different modules.		
 		
 					
     \appendix
