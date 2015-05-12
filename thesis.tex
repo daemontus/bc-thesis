@@ -13,6 +13,11 @@
   pdfpagelabels                     % Generate pdf page labels
 ]{hyperref}
 \usepackage{blindtext}            % Lorem ipsum generator
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{scalefnt}
+\usepackage{graphicx}
+\usepackage{wrapfig}
 
  % Algorithms
 \usepackage{algorithm}
@@ -26,7 +31,7 @@
 \thesiswoman{false}                % Your gender
 \thesisfaculty{fi}                % Your faculty
 \thesisyear{Spring \the\year}     % The academic term of your thesis defense
-\thesisadvisor{John Foo, Ph.D.}   % Your advisor
+\thesisadvisor{prof. RNDr. Luboš Brim, CSc.}   % Your advisor
 
 
 % Macros for definitions
@@ -71,10 +76,10 @@
       I would like to thank my supervisor\,\dots
     \end{ThesisThanks}
     \begin{ThesisAbstract}          % The abstract
-      The aim of the bachelor work is to provide\,\dots
+      The main focus if this thesis is to provide a distributed algorithm for computation of the parameter synthesis problem for biochemical systems and CTL hypothesis and a usable implementation of said algorithm. The soundness and scalability of the algorithm is successfully demonstrated on biochemical models based on ordinary differential equations. 
     \end{ThesisAbstract}
     \begin{ThesisKeyWords}          % The keywords
-      keyword1, keyword2\,\dots
+		Coloured Model Checking, CTL, Parameter Sythesis Problem, Systems Biology, Distribution
     \end{ThesisKeyWords}
     \tableofcontents                % The table of contents
 %   \listoftables                   % The list of tables (optional)
@@ -82,8 +87,8 @@
   
   \MainMatter                     % The main matter
     \chapter{Introduction}          % Chapters
-	Lorem Ipsum \cite{testCite}
 
+		
 	\chapter{Terms and Definitions}
 		
 		\section{Kripke Structure}
@@ -201,47 +206,170 @@
 			
 			Undefined values are important in CTL semantics over distributed fragments, since such values can be used in places where validity of formula cannot be computed because it depends on information stored in another fragment which has not been received yet. However, a correct model checking algorithm should always provide a definitive answer for all states and parameter valuations.
 			
-			For a Kripke fragment $\fullKf{i}{}$ and a formula $\varphi$, the assumption function is defined inductively on the structure of the formula $\varphi$:
+			For a Kripke fragment $\fullKf{i}{}$ and a formula $\varphi$, the assumption function is defined inductively on the structure of the formula $\varphi$:			
+		
+\begingroup		
+\scalefont{0.9}{
+\begin{equation*}
+	\as(p, s, Q) = 
+   	\begin{dcases}
+    	\begin{split}
+			\true
+      	\end{split}
+      & \text{\parbox{8cm}{$Q \in L(s)$}} \\
+      	\begin{split}
+       		\false
+      	\end{split}
+      & \text{otherwise}
+   	\end{dcases}
+\end{equation*}		
+}				
+\endgroup
 			
-			\begin{center}								
-				\[\as(p, s, Q) = \left\{ 
-  					\begin{array}{l l}
-					    \true & \quad Q \in L(s)\\
-					   	\false & \quad otherwise\\
-				  \end{array} 
-				\right.\]
-			\end{center}
+\begingroup			
+\scalefont{0.9}{
+\begin{equation*}
+	\as(p, s, \neg \varphi_1) = 
+   	\begin{dcases}
+    	\begin{split}
+			\true
+      	\end{split}
+      & \text{\parbox{8cm}{$\as(p, s, \varphi_1) = \false$}} \\
+      	\begin{split}
+       		\false
+      	\end{split}
+      & \text{\parbox{8cm}{$\as(p, s \varphi_1) = \true$}} \\
+      	\begin{split}
+       		\perp
+      	\end{split}
+      & \text{otherwise}
+   	\end{dcases}
+\end{equation*}		
+}	
+\endgroup
+								
+\begingroup
+\scalefont{0.9}{
+\begin{equation*}
+	\as(p, s, \varphi_1 \wedge \varphi_2) =
+   	\begin{dcases}
+    	\begin{split}
+			\true
+      	\end{split}
+      & \text{\parbox{8cm}{$\as(p, s, \varphi_1) = \true $ and $ \as(p, s, \varphi_2) = \true$}} \\
+      	\begin{split}
+       		\false
+      	\end{split}
+      & \text{\parbox{8cm}{$\as(p, s \varphi_1) = \false $ or $ \as(p, s, \varphi_2) = \false$}} \\
+      	\begin{split}
+       		\perp
+      	\end{split}
+      & \text{otherwise}
+   	\end{dcases}
+\end{equation*}		
+}	
+\endgroup
+
+\begingroup			
+\scalefont{0.9}{
+\begin{equation*}
+	\as(p, s, \ex{\varphi_1}) =
+   	\begin{dcases}
+    	\begin{split}
+			\true
+      	\end{split}
+      & \text{\parbox{8cm}{$\exists s' \in S : s \trans{p} s' \wedge \as(p, s', \varphi_1) = \true$}} \\
+      	\begin{split}
+       		\false
+      	\end{split}
+      & \text{\parbox{8cm}{$\forall s' \in S : s \trans{p} s' \Rightarrow \as(p, s', \varphi_1) = \false$}} \\
+      	\begin{split}
+       		\perp
+      	\end{split}
+      & \text{otherwise}
+   	\end{dcases}
+\end{equation*}		
+}	
+\endgroup
+
+\begingroup			
+\scalefont{0.9}{
+\begin{equation*}
+	\as(p, s, \eu{\varphi_1}{\varphi_2}) =
+   	\begin{dcases}
+    	\begin{split}
+			\true
+      	\end{split}
+      & \text{\parbox{8cm}{exits a p-path $\pi = s_0s_1 s_2
+                  \ldots$ with $s=s_0$ such that $\exists x < |\pi|$ such that 
+                  (either $\as(p, s_x, \varphi_2) = \true$ or [$s_x \in border(\ks)$ and $\as(p, s_x,  \eu{\varphi_1}{\varphi_2}) = \true])$, and $\forall 0 \leq y < x : \as(p, s_y, \varphi_1) = \true$ }} \\
+      	\begin{split}
+       		\false
+      	\end{split}
+      & \text{\parbox{8cm}{for all p-paths $\pi = s_0s_1 s_2
+                  \ldots$ with $s=s_0$ either $\exists x < |\pi|$ such that 
+                  $(\as(p, s_x, \varphi_1) = \false$ and $\forall y \leq x : \as(p, s_y, \varphi_2) = \false)$ or $[ \forall x < |\pi| : \as(p, s_x, \varphi_2) = \false $ and $( |\pi| = \infty $ or $( s_{|\pi| - 1} \in border(\ks) $ and $ \as(p, s_{|\pi| - 1}, \eu{\varphi_1}{\varphi_2}) = \false ))]$ }} \\
+      	\begin{split}
+       		\perp
+      	\end{split}
+      & \text{otherwise}
+   	\end{dcases}
+\end{equation*}		
+}	
+\endgroup
+
+\begingroup			
+\scalefont{0.9}{
+\begin{equation*}
+	\as(p, s, \au{\varphi_1}{\varphi_2}) =
+   	\begin{dcases}
+    	\begin{split}
+			\true
+      	\end{split}
+      & \text{\parbox{8cm}{for all p-path $\pi = s_0s_1 s_2
+                  \ldots$ with $s=s_0$ such that $\exists x < |\pi|$ such that 
+                  $[$ either $\as(p, s_x, \varphi_2) = \true$ or $(s_x \in border(\ks)$ and $\as(p, s_x,  \au{\varphi_1}{\varphi_2}) = \true)]$, and $\forall 0 \leq y < x : \as(p, s_y, \varphi_1) = \true$ }} \\
+      	\begin{split}
+       		\false
+      	\end{split}
+      & \text{\parbox{8cm}{exists a p-path $\pi = s_0s_1 s_2
+                  \ldots$ with $s=s_0$ and an index $x < |\pi|$ such that: 
+                  $(\as(p, s_x, \varphi_1) = \false$ and $\forall y \leq x : \as(p, s_y, \varphi_2) = \false)$ or $[ \forall x < |\pi| : \as(p, s_x, \varphi_2) = \false $ and $( |\pi| = \infty $ or $( s_{|\pi| - 1} \in border(\ks) $ and $ \as(p, s_{|\pi| - 1}, \eu{\varphi_1}{\varphi_2}) = \false ))]$ }} \\
+      	\begin{split}
+       		\perp
+      	\end{split}
+      & \text{otherwise}
+   	\end{dcases}
+\end{equation*}		
+}	
+\endgroup
+
+		\section{Modelling techniques}
+	
+			To prove soundness and universlaity of our algorithm, we test it on two different modelling techniques. 
 			
-			\begin{center}								
-				\[\as(p, s, \neg \varphi_1) = \left\{ 
-  					\begin{array}{l l}
-					    \true & \quad \as(p, s, \varphi_1) = \false\\
-					   	\false & \quad \as(p, s \varphi_1) = \true\\
-					   	\perp & \quad otherwise\\
-				  \end{array} 
-				\right.\]
-			\end{center}
+			First techinique is based on discretization of piece-wise multi-affine models defined using Ordinary Differential Equations. More about this techinique can be found in [cite]. ODE models have rectangular state space with low number of transitions per state and good locality. Since parameters valuations are continuous, they have to be symbolically represented in form of intervals. Unfortunately, ODE models suffer from over-approximation and therefore are not very well suited for verification of properties with mixed existential and universal quantification.
+	
+			Second technique is based on Thomas Networks which are extension of Boolean Networks. Compared to ODE models, Thomas Networks are inherently discrete. They also do not suffer from over- or under-approximation. The downside of Thomas Networks are parameters, since even small models can contain a very large number of parameters and possible parameter valuations. Usually, it is also hard to find a compact and reasonably fast symbolic representation of said parameters. The influence of parameters on transition system also tends to by much more irregular compared to ODE models. This makes them less suitable for state space distribution.
 			
-			\begin{center}								
-				\[\as(p, s, \varphi_1 \wedge \varphi_2) = \left\{ 
-  					\begin{array}{l l}
-					    \true & \quad \as(p, s, \varphi_1) = \true $ and $ \as(p, s, \varphi_2) = \true\\
-					   	\false & \quad \as(p, s \varphi_1) = \false $ or $ \as(p, s, \varphi_2) = \false\\
-					   	\perp & \quad otherwise\\
-				  \end{array} 
-				\right.\]
-			\end{center}			
+		\section{State Space Partitioning}
 			
-			\begin{center}								
-				\[\as(p, s, \ex{\varphi_1}) = \left\{ 
-  					\begin{array}{l l}
-					    \true & \quad \exists s' \in S : s \trans{p} s' \wedge \as(p, s', \varphi_1) = \true\\
-					   	\false & \quad \forall s' \in S : s \trans{p} s' \Rightarrow \as(p, s', \varphi_1) = \false\\
-					   	\perp & \quad otherwise\\
-				  \end{array} 
-				\right.\]
-			\end{center}			
+			One of the most important aspects of efficient distributed model checking algorithms is a suitable state space partitioning. One that minimizes the communication overhead and provides an equalized workload distribution. In particular, the partitioning should provide a regular load-balancing, ensuring that each process is responsible for a proportional part of the state space. It should also provide a good locality, minimizing the number of cross transitions and therefore reducing the communication overhead.
 			
+			The problem of computing the optimal partitioning can introduce a significant overhead into the computation. Therfore, various heuristics are considered to produce partitioning that is easy to compute and at the same time provides reasonable load-balancing and locality. One of such heuristics is a hash based partitioning which is usually used for computer and engineering systems. This partitioining does not require any prior knowledge about the structure of the state space, and therefore can be universally applied to almost any system.
+			
+			It is based on a hash function mapping each state to a process. This approach usually results in in very good load balancing thanks to the uniformity of the hash function. However, hash based partitioning can't control the locality and therefore may introduce a high number of cross transitions into the system. This can significantly increase communication overhead.
+			
+			In this work, we exploit the regular structure of the state space of biochemical models [cite] in order to produce partitioning that does not suffer from this kind of locality problem. We use structural properties of the rectangular abstraction of the given parametric piece-wise multi-affine ODE model [cite]. The approximation is formed by an $n$-dimensional hyper-rectangular state space defined by $n$ state variables and by a set of thresholds for each variable. The discretization of the state space also ensures that there are only transition between adjacent states with respect to the hyper-rectangular structure.
+			
+			Our partitioning decomposes said state space into $p$ hyper-rectangular subspaces such that all subspaces have similar state count ($p$ is the number of processes). This heuristic usually proveds good load balancing, since the states are evenly distributed across all processes. However, compared to classic hash based partitioning, it can also provide better locality thanks to the fact that transitions only occur between adjacent states. This ensures that cross transitions can originate only in states on borders of these hyper-rectangular subspaces. Which in turn provides almost minimal number of cross transitions and therefore significantly reduces the communication overhead.
+			
+			However, note that this is still only a heuristic and the results can be negatively influenced by the backward connectivity of the state space. Especially in systems with uneven distribution of transitions across states, better partitionings can be constructured that minimize the number of cross transitions while at the same time maintaining good load-balancing. On the other hand, our experiments demostrate that due to the fact, that we have to consider all possible parametrizations, the connectivity of the state space is significantly increased. Therefore, our heuristic can for majority of models create a partitioning that reduces the communication overhead significantly. 
+			
+			Similar heuristic can be deployed also for the Thomas networks, however, this modeling thechnique has a less predictable transition system and therefore the minimal number of cross transitions is not that easily achieved. 
+			
+			
+		
 		
     \chapter{Algorithm}
     
@@ -251,7 +379,7 @@
     	
 		In this section, we briefly describe the distributed environment assumed by our algorithm, in order to prevent any possible confusion.
 		
-		We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers is equal to the result set of the partition function. Each process can communicate directly (using the function \method{Send}) with any other process (assuming it knows other process's identifier). We assume that each message can be transmitted in $O(1)$ time and all messages that can't be processed directly are stored in a queue until they can be processed.
+		We assume a distributed environment with fixed number of reliable processes connected by reliable, order-preserving channels (The order preservation can be relaxed to some extent). We also assume that each process has a fixed identifier and the set of all process identifiers is equal to the result set of the partition function. Each process can communicate directly (using the function \method{Send}) with any other process (assuming it knows other process's identifier). We assume that each message can be transmitted in $O(1)$ time and all messages that can't be processed directly are stored in a queue until they can be processed.		
 		
 		Several parts of the algorithm do not have explicit termination (they terminate by reaching deadlock - no messages are exchanged between processes). In such cases, suitable termination detection algorithm is employed to detect this deadlock and terminate computation properly. Our implementation uses Safra's algorithm [CITATION] for this purpose, but the related code has been skipped for easier readability.
     	
@@ -380,6 +508,12 @@
 				\end{algorithmic}	
 			
 				The \eu{}{} operator is a little more complex, but again fairly simple. The algorithm starts by computing all states and colours where $\phi_2$ is true. Starting from these states, a backpropagation of parameter sets along the reversed transitions is performed. During the computation, the propagated parameter set is updated to reflect the validity of $\phi_1$ and the validity of transitions used along the path. Note that backpropagation is stoped as soon as there is no new information computed ($colSat$ is either empty or equal to already computed assumptions).
+				
+				Algorithm's correctness can be shown by induction to the length of the path required to reach state where $\varphi_2$ holds using only states where $\varphi_1$ holds.
+				
+				For $i=0$, the algorithm is correct since it starts by finding all states and colours for which the $\varphi_2$ holds and markes all of these states with the formula $\varphi$.
+				
+				Let us assume that algorithm found all states where paths of length $i$. This also means that a message with appropriate colours has been sent to all predecessors. 
 			
 		    \subsection{All Until Operator}
 				\begin{algorithmic}[1]
@@ -452,9 +586,7 @@
 			
 			We do not provide exhaustive benchmark of this heuristic, since the main priority of this work is the model checking algorithm itself. However, a comparison with linked queue and circular buffer on models tested in the Scalability section showed that merge queue easily outperforms both of them especially in highly distributed environments. Linked queue was usually two times slower while circular buffer managed to provide approximately 60-80\% of the merge buffer performance. 
 			
-			One reason for this is the fact that more distributed computations have generally more cross transitions. This increases the cost of traversal compared to parameter set operations which in turn makes the merge buffer more effective. Also, the properties of this buffer allow in some cases for super-linear scalablilty, since greater number of processes can produce higher number of merged traversals. 
-			
-							
+			One reason for this is the fact that more distributed computations have generally more cross transitions. This increases the cost of traversal compared to parameter set operations which in turn makes the merge buffer more effective. Also, the properties of this buffer allow in some cases for super-linear scalablilty, since greater number of processes can produce higher number of merged traversals. 			
 	
 	\chapter{Implementation}
 
@@ -506,17 +638,194 @@
 				
 			\subsection{Frontend}			
 			
-				Frontend module ties together the functionality of all modules into several runnable utilities. However, the documentation and general outilne and output format of these tools have not yet been finalized and is subject to change. Therfore the code in this module should be taken more as an example of usage of different modules.		
-		
-					
-    \appendix
-    \chapter{First appendix}        % Appendices
-    \Blindtext
-    \chapter{Another appendix}
-    \Blindtext
+				Frontend module ties together the functionality of all modules into several runnable utilities. However, the documentation and general outilne and output format of these tools have not yet been finalized and is subject to change. Therfore the code in this module should be taken more as an example of usage of different modules.	
+				
+		\chapter{Experimental Evaluation}
 
+			The aim of this chapter is to demonstrate the soundness of our algorithm on two biologically relevant models. First model is fairly simple and is used for benchmarking purposes, since it can be easily scaled and modified while maintaining similar properties and structure. Second model exhibits non trivial behaviour and is used to demonstrate the ability of our method to correctly detect such behaviour. 
+		
+			\section{Scaleability}	
+			
+				We evaluate the scalability of the algorithm on an ODE model of reversible catalytic reaction with varying number of intermediate enzyme-substrate complexes.  Using this model, we can scale the number of intermediate products/variables ($N$), discretization thresholds ($T$) and unknown parameters. For simplicity, we assume that each variable is evaluated on the same amount of thresholds, which results in the total state space size of $(T - 1)^N$. 
+				
+				
+				The benchamarks were performed on a cluster of 12 computational nodes, each equipped with 16 GB of RAM memory and a quad-core Intel Xeon 2Ghz processor. In order to focus on the distribution and not multi-core performance, we utilize only one core on each machine. However, note that the algorithm can be easily execued on a multicore machine or a cluster of multicore machines using all cores. No other resource intensive software was running at these machines at the time of benchmarking.
+				
+				The model itself is descirbed in the following scheme. The first line represents a simplified chemical equation of the model. The following lines describe differential equations for every species. The last two lines describe used parameters. 				
+
+
+				\begin{figure}
+					\centering
+					\underline{$S + E \rightleftharpoons ES_1 \rightleftharpoons \dots \rightleftharpoons ES_k \rightleftharpoons P + E$}\\
+					$\dot{S}  =  0.1\cdot ES_1 - p_1\cdot E\cdot S$\\
+					$\dot{E}  =  0.1\cdot ES_1 - p_2\cdot E\cdot S + 0.1\cdot ES_k - p_2\cdot E\cdot P$\\
+					$\dot{ES_1} = 0.01\cdot E\cdot S - p_3\cdot ES_1 + 0.05\cdot ES_2$\\
+					$\vdots $\\
+					$\dot{ES_k} = 0.1\cdot ES_{k -1} - p_k\cdot ES_k + 0.01\cdot E\cdot P$\\
+					\underline{$\dot{P}  =  0.1\cdot ES_k - p_{k+1}\cdot E\cdot P - 0.1\cdot P$}\\
+					$p_1 = 0.01, p_2 = 0.01, p_3 = 0.2,$\\ $p_k = 0.15, p_{k+1} = 0.01$
+				\end{figure}
+
+
+				In the subsequent tables, we provide detailed information about the runtime of the distributed algorithm on various modifications of the model and the CTL formula $\ag{(P \leq 30)}$.  The value {\em N/A} represents a situation when the algorithm ran out of memory. The results has been obtained as an arithmetic mean of several experiments.
+				
+				They generally illustrate very good scaleability in terms of evaluated model properties. Note that the number of parameters can change the structure of the transition system, which may result in shorter run times, as demonstrated in table \ref{tab:param}. Also note that in several occasions, especially when comparing single and dual machine experiments, the algorithm exhibits a super-linear speed-up. There are two main reasons of this behaviour. 
+				
+				First is the merge buffer as described in [reference], which can merge several traversals into one and therefore reduce expected overhead. Second is the garbage collector used by the Java Runtime Environment. Single machine experiments generally take up more memory, since the whole state space has to be stored on one computer. This leads to more aggressive garbage collecting and thus results in higher run times. On the other hand, when using high number of computational nodes, the garbage collection has only insignificant impact thanks to the high amount of available memory.
+				
+				\begin{table}
+				\label{tab:param}
+					\centering
+					\setlength{\tabcolsep}{6pt}
+					\begin{tabular}{|*{7}{c|}}
+						%	\hline
+						%	\multicolumn{7}{|c|}{times for model with 6 dimensions per 13 thresholds in seconds} \\
+						\hline
+							\# of params	& 1 	& 2 	& 3	& 4	& 5	& 6	\\
+							%		(\# of states) & ($12^6$) & ($12^6$) & ($12^6$) & ($12^6$) & ($12^6$) & ($12^6$) \\
+						\cline{1-1}
+							\# of nodes	&	&	&	&	&	&	\\
+						\hline
+							1 & 6456	& {\em N/A} & {\em N/A} & {\em N/A} & {\em N/A} & {\em N/A} \\
+							2	& 2610		& 6179			& 5089			& 	{\em N/A}				&	{\em N/A}					&	{\em N/A}					\\
+							3	&	1696		&	4022			&	3661			&	3784			&	{\em N/A}					&	{\em N/A}					\\
+							4	&	854			&	1759			&	2285			&	2454			&	{\em N/A}					&	{\em N/A}					\\
+							5	&	683			&	1371			&	1365			&	1580			&	1736			&	{\em N/A}					\\
+							6	&	499			&	1095			&	1019			&	1254			&	1609			&	1350			\\
+							7	&	435			&	861				&	796				&	1023			&	1406			&	1340			\\
+							8	&	292			&	642				&	650				&	853				&	1134			&	1118			\\
+							9	&	258			&	439				&	630				&	752				&	983				&	962				\\
+						 	10	&	232			&	418				&	557				& 637				&	839				&	822				\\
+							11	&	198			&	347				&	516				&	553				&	784				&	679				\\
+							12	&	177			&	329				&	420				&	562				&	759				&	660				\\
+						\hline
+					\end{tabular}\\[1em]
+					\caption{The runtime in seconds for the model with 6 variables, 13 thresholds and different number of unknown parameters.}				
+			\end{table}
+
+			\begin{table}
+				\centering
+				\setlength{\tabcolsep}{6pt}
+				\begin{tabular}{|*{5}{c|}}
+					%	\hline
+					%	\multicolumn{5}{|c|}{times for model with 1 unknown parameter in seconds} \\
+					\hline
+						\# of variables & 4 & 5 & 6 & 7 \\
+						%(\# of states) & ($10^4$) & ($10^5$) & ($10^6$) & ($10^7$) \\
+						\cline{1-1}
+						\# of nodes & & & & \\
+					\hline
+						1	& 3.3 &	22 &	794 & {\em N/A}	\\
+						2 &	3.3 &	12 &	489	& {\em N/A} \\
+						3 &	3.5 &	9.5 &	253 & {\em N/A} \\	
+						4 &	3.4 &	8.2 &	185 &	8571 \\
+						5 &	2.7 &	8 &	112 &	6608 \\
+						6 &	2.4 &	7.2 &	101 &	5291 \\
+						7 &	2.7 &	7.3 &	77 &	3024 \\
+						8 &	2.3 &	6.6 &	64 &	2630 \\
+						9 &	2.3 &	6.3 &	55 &	2366 \\
+						10 &	2.5 &	6.8 &	52 &	2081 \\
+						11 & 2.7	&	6.2 &	47 &	1999 \\
+						12 & 2.2	&	5.6 &	41 &	1828 \\
+					\hline
+				\end{tabular}\\[1em]
+				\caption{The runtime in seconds for the model with 1 unknown parameter, 11 thresholds per the variable and different number of variables.}
+			\end{table}
+			
+			\begin{table}
+				\centering
+				\setlength{\tabcolsep}{6pt}
+				\begin{tabular}{|*{5}{c|}}
+					\hline
+						\# of thresholds & 10 & 11 & 12 & 13 \\
+						%(\# of states) & ($9^6$) & ($10^6$) & ($11^6$) & ($12^6$) \\
+						\cline{1-1}
+						\# of nodes & & & & \\
+					\hline
+						1 &	274 &	794 &	1805 &	6456 \\
+						2 &	196 &	489 &	1252 &	2610 \\
+						3 &	84 &	253 &	570 &	1696 \\
+						4 &	62 &	185 &	408 &	 854 \\
+						5 &	51 &	112 &	280 & 683 \\
+						6 &	40 &	101 &	226 &	499 \\
+						7 &	33 &	77 &	192 &	435 \\
+						8 &	29 &	64 &	161 &	292 \\
+						9 &	26 &	55 &	145 &	258 \\
+						10 &	24 &	52 &	108 &	232 \\
+						11 &	23 &	47 &	94 &	198 \\
+						12 & 22	 & 41	 & 96	&	177 \\
+					\hline
+				\end{tabular}\\[1em]
+				\caption{The runtime in seconds for the model with 1 unknown parameter, 6 variables and different number of thresholds per variable.}
+			\end{table}
+
+			\newpage
+						\newpage
+									\newpage			\newpage
+			\section{Case study}
+			
+				To demonstrate the applicability of the algorithm, we investigate a well-known ODE model [cite] which represents a two-gene regulatory network describing interaction of the tumor suppressor protein $pRB$ and the central transcription factor $E2F1$ (see Fig.~\ref{fig:genmodel} (left)). This network represents the crucial mechanism governing the transition from $G_1$ to $S$ phase in the mammalian cell cycle. In the $G_1$-phase the cell makes an important decision. In high concentration levels, $E2F1$ activates the $G_1/S$ transition mechanism. In low concentration of $E2F1$, committing to $S$-phase is refused and that way the cell avoids DNA replication.
+				
+				This mechanism is and example of \emph{bistable switch}. The system makes an irreversible decission to finally reach some of the two stable states. The model is represented by two differential equations as seen in Figure \ref{fig:genmodel}. In order to discretize this model, a piece-wise multi-affine approximation (PMA) has to be computed [cite]. In our experiments, we use 70 thresholds per each variable during this process. However, no significant change in results has been observed for higher threshold counts.
+				
+				On the resulting model, we can perform a coloured model checking of the formula $\varphi \equiv \ef{\ag{(\mathtt{high})}}\wedge \ef{\ag{(\mathtt{low})}}$ considering the initial parameter space ${\phi_{pRB}\in[0.001,0.025]}$. The atomic propositions  $\mathtt{low}$ and $\mathtt{high}$ characterise the location of expected regions of $E2F1$ stability. Based on the results reported in~\cite{SKH04} we define the stable regions as $\mathtt{high}\equiv (E2F1>4 \wedge E2F1<7.5)$ and $\mathtt{low}\equiv ({E2F1>0.5} \wedge E2F1<2.5)$.
+				
+				As seen in figure \ref{fig:3dresults}, the computation has successfully discovered both stable areas and corresponding parameters, as well as area and parameters from which both stable states can be reached. However, note that due to over-approximation, only the stable areas are guaranteed to be true. 
+				
+
+\begin{figure}
+  \begin{center}
+       \vspace*{-6mm}
+  \hspace*{-1cm}  \parbox{3.8cm}{\includegraphics[scale=.7]{gs1net.pdf}}~
+\parbox{6.5cm}{
+\scriptsize
+$$\begin{array}{c@{$\,=\,$}l}
+\frac{d[pRB]}{dt} & k_1 \frac{[E2F1]}{K_{m1}+[E2F1]}\frac{J_{11}}{J_{11}+[pRB]}  - \phi_{pRB}[pRB]\\[1mm]
+\frac{d[E2F1]}{dt} & k_p + k_2 \frac{a^2+[E2F1]^2}{K_{m2}^2+[E2F1]^2}\frac{J_{12}}{J_{12}+[pRB]} - \phi_{E2F1} [E2F1]
+\end{array}$$
+$a = 0.04$, $k_1=1$, $k_2=1.6$, $k_p=0.05$, $\phi_{E2F1}=0.1$ \\ $J_{11}=0.5$, $J_{12}=5$, $K_{m1}=0.5$, $K_{m2}=4$
+}\\
+    \end{center}
+\caption{$G_1/S$ transition regulatory network and its ODE model taken from~\cite{SKH04}.}
+\label{fig:genmodel}
+\end{figure}
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.35]{3d.png}
+\end{center}
+\vspace*{-0.5em}
+\caption{Coloured model checking results. Red and blue parts
+  correspond to the high and low stable regions, respectively. Yellow part
+  displays the states where the overall \emph{bistable switch} formula $\varphi$
+  holds.}
+\label{fig:3dresults}
+\end{figure}
+
+	\chapter{Conclusion}
+		
+		The aim of this work was to design and implement a method that can efficiently solve parameter synthesis problem for biochemical models and CTL hypothesis. 
+		
+		We proposed an algorithm based on existing algorithms for distributed CTL model checking and coloured model checking of LTL formulas. The algorithm is given as pseudocode and we also provide a working implementation. The algorithm is not limited to the biochemical models and therefore has general applicability.
+
+		We also proposed an efficient state space partitioning heuristic for ODE models and a merge buffer heuristic for reduction of unnecessary state space traversals.
+				
+		The provided implementation is oriented at biochemical models, provides suport for two distinct modelling techniques, full range of CTL operators and features easily extensible modular architecture.
+		
+		We benchmarked the provided implementation and showed that the algorithm scales well with higher number of computation nodes and provides sufficient performance to investigate models with large state spaces, even though the exponential state space explosion still remains a problem. The soundness of the algorithm and applicability has been demonstrated on a biologically relevant model of bistable switch.
+		
+		In the future, the implementation can be optimized to provide even better performance and scalability, especially on multicore architectures. Also support for different modelling techniques and partitioning heuristics can be implemented.
+		
+		Another possible direction of development would be a coloured symbolic model checking, which should provide even better performance compared to our explicit method, especially in terms of memory usage. 
+		
+		
+		
+			
+					
     \bibliographystyle{ieeetr}  
 	\bibliography{bibliography}
+	
     % Bibliography goes here
     % Index goes here (optional)
 \end{document}
