@@ -1,4 +1,4 @@
-\documentclass[12pt,oneside,draft]{fithesis2}
+\documentclass[12pt,oneside, draft]{fithesis2}
 \usepackage[english]{babel}       % Multilingual support
 \usepackage[utf8]{inputenc}       % UTF-8 encoding
 \usepackage[T1]{fontenc}          % T1 font encoding
@@ -38,7 +38,9 @@
 % Assumptions
 \newcommand{\as}[1][]{\ensuremath{\mathcal{A}_{#1}}}
 \newcommand{\asemt}{\as[\perp]}
-\newcommand{\ASphi}{\ensuremath{AS_{\mathcal K}^\phi}}
+\newcommand{\ain}{\mathcal{A}_{in}}
+\newcommand{\ASphi}{\ensuremath{AS_{\kf{i}{}}^\varphi}}
+\newcommand{\sem}{\ensuremath{\mathcal{C}_{\kf{i}{}}^\varphi}}
 
 % Algorithm
 \newcommand{\method}[1]{\textnormal{\textsc{#1}}}
@@ -51,7 +53,7 @@
 \newcommand{\ks}[1][]{\ensuremath{\mathcal{K}_{#1}}}
 \newcommand{\kf}[2]{\ensuremath{\mathcal{F}^{#2}_{#1}}}
 \newcommand{\fullKs}{\ensuremath{ \ks = (\params, S, S_0, \trans{}, L) }}
-\newcommand{\fullKf}[2]{\ensuremath{ \kf{#1}{#2} = (f, \params, S_{#1}, I_{i}, \trans{}_{#1}, L_{#1}) }}
+\newcommand{\fullKf}[2]{\ensuremath{ \kf{#1}{#2} = (\params, S_{#1}, I_{i}, \trans{}_{#1}, L_{#1}) }}
 \newcommand{\trans}[1]{\stackrel{#1}{\rightarrow}}
 \newcommand{\params}{\mathcal{P}}
 
@@ -87,29 +89,44 @@
   
   \MainMatter                     % The main matter
     \chapter{Introduction}          % Chapters
-
+	
+		With advancements in human knowledge about biochemical processes in living organisms, the complexity of experiments and theories needed to advance this knowledge even further is constantly increasing. This makes the search for easily auditable computational models describing dynamics of biochemical processes a key step towards understanding of the behavioral and physiological phenotypes ocurring in biology.
 		
-	\chapter{Terms and Definitions}
+		Complex biochemical processes occurring in living organisms are usually dependant on high number of parameters, such as reaction rates or concentration values. While the qualitative aspects of some of these processes are already known, the quantitative aspects of these parameters are usually hard to measure and therefore cannot be easily determined. This leaves values of many parameters in biochemical systems uncertain or completely unknown.
+		
+		The aim of the \emph{parameter synthesis} is to find a maximum set of valuations of these unknown parameters, such that these valuations meet a stated dynamical constraints. These dynamical constraints can be captured in terms of temporal logic formulae. 
+				
+		A commonly used technique that decides wheter a given model meets specified temporal specification is \emph{model checking} \cite{clarke}. Several methods for parameter synthesis based on model checking have already been proposed with various modelling techniques and temporal logics in mind \cite{ieee,batt,gilbert,donze,jha}.
+		
+		In this work, in order to express biologically relevant hypothesis, we focus on the branching time based logic, CTL. This is because many biological properties, such as multistability, need branching time operators to express them properly. It is very difficult or even impossible to express these properties correctly in linear time based logic, such as LTL. 
+		
+		Another advantage of CTL logic is that the particular procedure of model checking does not rely on initial conditions, effectively identifying all states where given property is satisfied. This leads to a global analysis of the model, as opposed to LTL model checking procedure, which requires a single initial state.
+				
+		This work proposes a new method of solving the parameter synthesis problem based on the CTL model checking. To tackle the problem of state space and parameter state explosion, we base our algorithm on distributed CTL model checking as defined in \cite{assumptions} and coloured model checking as introduced in \cite{ieee}. We also provide an implementation on which we demonstrate the soundness and scaleability of this new algorithm. 		
+		
+		The work is divided into seven chapters. Second and third chapter introduce the notion of Kripke Structures, Kripke Fragments, State Space Partitioning and provide a short overview of employed modelling techniques. Fourth chapter describes the distributed algorithm itself. Fifth chapter discusses the details of the implementation. Finally, sixth chapter is dedicated to scaleability and case study discussion.
+				
+	\chapter{Parameter synthesis problem}
 		
 		\section{Kripke Structure}
 	
-			As an input of our algorithm, we expect a parametrized Kripke Structure as defined in [CITE]. Parametrized Kripke Structure is a tuple $\fullKs$ where
+			As an input of our algorithm, we expect a parametrized Kripke Structure as defined in \cite{ieee}. Parametrized Kripke Structure is a tuple $\fullKs$ where
 			
 			\begin{itemize}
 				\item $\params$ is a finite set of parameters (all possible parameter valuations)
 				\item $S$ is a finite set of states
 				\item $S_0 \subseteq S$ is a set of initial states
-				\item $\trans{} \subseteq S \times \params \times S$ is a total transition relation labeled by parameter valuations 
+				\item $\trans{} \subseteq S \times \params \times S$ is a transition relation labeled by parameter valuations 
 				\item $L: S \rightarrow 2^{AP} $ is a labeling function from states to sets of atomic propositions which are true in such states
 			\end{itemize} 		
 			
-			We write $ s \trans{p} s' $ when $ (s, p, s') \in \trans{} $. We also write $ s \trans{} s'$ when $\exists p \in \params. (s, p, s') \in \trans{} $. Note that fixing a valuation $p \in \params$ reduces the Parametrized Kripke Structure $\ks$ to concrete, non-parametrized Kripke Structure $\ks(p) = (S, S_0, \trans{p}, L)$.
+			We write $ s \trans{p} s' $ when $ (s, p, s') \in \trans{} $. We also write $ s \trans{} s'$ when $\exists p \in \params : (s, p, s') \in \trans{} $. Note that fixing a valuation $p \in \params$ reduces the Parametrized Kripke Structure $\ks$ to concrete, non-parametrized Kripke Structure $\ks(p) = (S, S_0, \trans{p}, L)$.
 						
 		\section{CTL Logic}
 		
-			In order to correctly express various hypotheses in systems biology, the idea of branching time is need. Examples of such hypotheses are given in section [Case Study]. Therefore, this work uses the Computation Tree Logic(CTL) as means of hypotheses formulation. 
+			In order to correctly express various hypotheses in systems biology, the idea of branching time is needed. Example of such hypotheses are given in section \ref{sec:case}. Therefore, this work uses the Computation Tree Logic (CTL) as means of hypotheses formulation. 
 
-			CTL syntax is defined inductively upon finite set of atomic propositions:
+			CTL syntax is defined inductively upon finite set of atomic propositions $AP$:
 			
 			\begin{equation}
 				\varphi ::= 
@@ -123,7 +140,7 @@
 					\au{\varphi_1}{\varphi_2}			
 			\end{equation}
 			
-			Sometimes, we will use parentheses to make bigger formulas easily readable, but they will in no way be used to modify the meaning of formula or priority of operators.
+			Sometimes, we will use parentheses to make complex formulas easily readable, but they will in no way be used to modify the meaning of formula or priority of operators.
 			
 			Note	 that there are also other temporal operators in standard CTL definition. We do not implement those directly in our algorithm. However, we use following equations to transform any general CTL formula prior to computation, so that it only uses operators supported in our algorithm. This way we can achieve a concise algorithm and also support whole CTL logic.
 			
@@ -135,76 +152,81 @@
 				\item $ \ag{\varphi} = \neg \eu{(true)}{\neg \varphi}$
 			\end{itemize}
 			
-			Note that all of these transformations also preserve number of temporal operators in a formula. 
-			
-			Other boolean operators like implication or equivalence can also be derived using similar transformations. 			
+			Note that all of these transformations also preserve number of temporal operators in a formula. Other boolean operators like implication or equivalence can also be derived using similar transformations. 			
 			
 			Let $\varphi$ be a CTL formula. We write $cl(\varphi)$ to denote the set of all sub-formulas of $\varphi$ and $tcl(\varphi)$ to denote the set of all temporal sub-formulas of $\varphi$. By $|\varphi|$ we denote the size of formula $\varphi$.
 			
-			We assume standard CTL semantics over non-parametrized Kripke structures as defined in [cite].
+			We assume standard CTL semantics over non-parametrized Kripke structures as defined in \cite{clarke}.
 
 		\section{Parameter Synthesis Problem}
 			
-			Parameter synthesis problem is defined in following way. Suppose we are given a parametrised Kripke structure $\fullKs$ and a CTL formula $\varphi$. For each state $s \in S$ let $ P_s = \{ p \in \params \mid s \models_{\ks(p)} \varphi \} $,where $s \models_{\ks(p)} \varphi$ denotes, that $\varphi$ is satisfied in the state $s$ of $\ks(p)$. The parameter synthesis problem requires to compute the function $\mathcal{M}_{\varphi}^{\ks} : S \rightarrow 2^\params $ such that $\mathcal{M}_{\varphi}^{\ks}(s) = P_s$. Often we are especially interested in computing the set of all parameters for which the property holds in some initial states $\cap_{s\in S_0}\mathcal{M}_\varphi^{\mathcal K}(s)$. We will sometimes omit the $\varphi$ and $\ks$ when they are clear from the context.	
+			Parameter synthesis problem is defined in following way. Suppose we are given a parametrised Kripke structure $\fullKs$ and a CTL formula $\varphi$. For each state $s \in S$ let $ P_s = \{ p \in \params \mid s \models_{\ks(p)} \varphi \} $,where $s \models_{\ks(p)} \varphi$ denotes, that $\varphi$ is satisfied in the state $s$ of $\ks(p)$. The parameter synthesis problem requires to compute the function $\mathcal{M}_{\varphi}^{\ks} : S \rightarrow 2^\params $ such that $\mathcal{M}_{\varphi}^{\ks}(s) = P_s$. Often we are especially interested in computing the set of all parameters for which the property holds in some of the initial states: $\cap_{s\in S_0}\mathcal{M}_\varphi^{\mathcal K}(s)$. We can sometimes omit the $\varphi$ and $\ks$ when they are clear from the context.	
 				
 		\section{CTL logic and model approximation}
 		
 			In model checking, some modeling approaches suffer from over or under approximation. We say that model is over-approximated when all feasible transitions are contained in the model, but it can also contain transitions that are not feasible in the situation the model is describing. Symmetrically, we say that model is under-approximated when all transitions in the model are feasible in the modeled situation, but not all feasible transitions has to be contained in the model. 
 			
-			It is important to discuss this relationship between CTL and approximated models, because it is much more complicated compared to linear-time logic since CTL allows for universal and existential quantification mixing.
+			It is important to discuss this relationship between CTL and approximated models, because it is much more complicated compared to linear-time logic, since CTL allows for universal and existential quantification mixing.
 			
 			We say that CTL formula is \emph{universal} or that it belongs to ACTL when it only contains universal temporal operators and no negation. Symmetrically, we say that CTL formula is \emph{existential} or that it belongs to ECTL when it only contains existential temporal operators and no negation.
 			
-			Observe that the truth of ACTL properties is preserved in over-approximated models. In other words, if an ACTL property holds in an over-approximated model, it must also hold in the original model. However, their falsity cannot be guaranteed, because the false transitions may introduce paths that falsify the property in states where it would be normally true. Similarly, the falsity of ECTL properties in over-approximated models is preserved but the truth is not. In this case, the existence of false transitions can introduce states where ECTL property holds solely due to these false paths.
+			Observe that the truth of ACTL properties is preserved in over-approximated models. In other words, if an ACTL property holds in an over-approximated model, it must also hold in a model without approximation. However, their falsity cannot be guaranteed, because the false transitions may introduce paths that falsify the property in states where it would be normally true. Similarly, the falsity of ECTL properties in over-approximated models is preserved, but the truth is not. In this case, the existence of false transitions can introduce states where ECTL property holds solely due to these false paths.
 			
 			Symmetrically, for under-approximated models, the falsity of ACTL and the truth of ECTL is preserved. But due to similar arguments, we can't say anything about their counterparts.
 			
-			If we allow full CTL, in general, we can't make any assumptions about results obtained from either under- or over-approximated systems. This is caused by mixing of existential and universal quantification which leads to results which may be spurious and incomplete at the same time. Therefore, no conclusions can be made without further investigation and validation of such results.
+			If we allow full CTL, in general, we can't make any assumptions about results obtained from either under- or over-approximated systems. This is caused by mixing of existential and universal quantification which leads to results that may be spurious and incomplete at the same time. Therefore, no conclusions can be made without further investigation and validation of such results.
 			
+	\chapter{State Space Distribution}
+				
 		\section{Kripke Fragments}
 		
-			Due to the state space explosion, given parametrised Kripke structure can be very large and therefore impossible to fit into memory of one computer. In order to solve parameter synthesis problem for such structures, we have to distribute the state space across several computational nodes. To this end, we introduce the notion of parametrised kripke fragments.
+			Due to the state space explosion, given parametrised Kripke structure can be very large and therefore impossible to fit into memory of one computer. In order to solve parameter synthesis problem for such structures, we have to distribute the state space across several computational nodes. To this end, we adapt the notion of parametrised kripke fragments as described in \cite{assumptions}.
 			
-			A parametrised Kripke structure $\ks$ can be divided into several parametrised Kripke fragments $\kf{1}{\ks}, \kf{2}{\ks}, \cdots , \kf{N}{\ks}$ using a partition function $f$. Parametrised Kripke fragment with identifier $i$ over Kripke structure $\fullKs$ is then defined as a tuple $\fullKf{i}{\ks}$ where:
+			A parametrised Kripke structure $\ks$ can be divided into several parametrised Kripke fragments $\kf{1}{\ks}, \kf{2}{\ks}, \cdots , \kf{N}{\ks}$ using a partition function $f : S \rightarrow \{1, \cdots , N \}$. Parametrised Kripke fragment with identifier $i$ over Kripke structure $\fullKs$ is then defined as a tuple $\fullKf{i}{\ks}$ where:
 			
 			\begin{itemize}
-				\item $f : S \rightarrow \{1, \cdots , N \}$ is a partition function from all states to fragment identifiers
 				\item $\params$ is a finite set of all parameters
 				\item $S_{i} = \{ s \in S \mid f(s) = i \vee \exists s'\in S. ((s \trans{} s' \vee s' \trans{} s) \wedge f(s') = i \}$ is a subset of original state space which belongs to this fragment
-				\item $I_{i} = \{ s \in S_0 \mid s \in S_{i} \} $ is a set of all fragments initial states
-				\item $\trans{}_{i} = \{ (s, p, s') \in \trans{} \mid s \in S_{i} \wedge s' \in S_{i} \wedge (f(s) = i \vee f(s') = i) \}$ is a subset of original transition function reduced to only relevant states (not required to be total)
-				\item $L_{i} = \{ (s, l) \in L \mid f(s) = i \}$ is a labeling subset of original labeling function relevant to this fragment
+				\item $I_{i} = \{ s \in S_0 \mid s \in S_{i} \} $ is a set of all initial states that belong to the fragment
+				\item $\trans{}_{i} = \{ (s, p, s') \in \trans{} \mid s \in S_{i} \wedge s' \in S_{i} \wedge (f(s) = i \vee f(s') = i) \}$ is a subset of original transition relation reduced to only relevant states (not required to be total)
+				\item $L_{i} = \{ (s, l) \in L \mid f(s) = i \}$ is a subset of original labeling function relevant to this fragment
 			\end{itemize}
 						
 			In the following text, we will often omit the superscript $\ks$ if it is clear from context.
 			
 			Intuitively, Kripke fragment represents a subset of the original kripke structure defined by the partition function. It contains all nodes specified by the partition function with all their direct successors and predecessors and all corresponding transitions. 			
 			
-			We define a set of border states $border(\kf{i}{\ks}) = \{ s \in S_{i} \mid f(s) \neq i \}$. Intuitively, these states represent the remaining portion of the state space which is stored in memory of other processes and is not directly accessible. We say that state is an \emph{internal state} if it is not a border state. We also define a set of cross edges as $cross(\kf{i}{\ks}) = \{ (s, p, s') \in \trans{}_{i} \mid s' \in border(\kf{i}{\ks}) \vee s \in border(\kf{i}{\ks}) \}$. Intuitively, these are edges leading from border states to internal states or vice versa. 
+			We define a set of border states $border(\kf{i}{\ks}) =  \{ s\in S_i \mid \neg \exists (p,s').s\trans{p}s'\}$. Intuitively, these states represent the remaining portion of the state space which is stored in memory of other processes and is not directly accessible. We say that state is an \emph{internal state} if it is not a border state. We also define a set of cross edges as $cross(\kf{i}{\ks}) = \{ (s, p, s') \in \trans{}_{i} \mid s' \in border(\kf{i}{\ks}) \vee s \in border(\kf{i}{\ks}) \}$. Intuitively, these are edges leading from border states to internal states or vice versa. 
 			
 			Note that for a constant partition function $f(s) = 1$ and any given kripke structure, the partitioning results in one fragment with an unchanged state space and an unchanged transition relation (The sets of border states and cross edges are empty for the resulting fragment). Similarly, for every Kripke structure, there exists a partition function for which $N = |S|$ and every resulting fragment contains only one internal state. Under such partitioning, all edges are cross edges. 
 			
-			In worst case (connected graphs), such partitioning results in fragments with $|S| - 1$ border states and one internal state (there is no way to achieve higher state count in fragment than in the original structure). Therefore we can assume that $\sum\limits_{i=1}^N | S_i | \leq |S|^2 $, hence the number of introduced border states is at worst quadratic in terms of original state space. The number of internal states remains the same.
+			In worst case (connected graphs), such partitioning results in fragments with $|S| - 1$ border states and one internal state (there is no way to achieve higher state count in fragment than in the original structure). Therefore we can assume that $\sum\limits_{i=1}^N | S_i | \leq |S|^2 $, hence the number of introduced border states is at worst quadratic in terms of original state space. The number of internal states remains allways the same.
 
 			This increase seems rather high, however, it is important to note that this also requires one process for each original state. In real life scenarios, the number of states per process is usually much higher. Also note that the representation of border state in memory is usually much simpler (and smaller) than representation of internal state, so even a distribution with high border state count can be beneficial in terms of memory consumption. 
 						
 			In terms of edges, in the worst case, each edge has to be contained in two fragments (where either of the end states is an internal state), therefore the total number of edges is at worst doubled.			
 			
-			The number of border states and cross edges is also highly dependent on the partition function. It is usually best to design the partition function with specific model or modeling approach in mind in order to achieve optimal workload distribution. We will discuss different partition functions later in the text. 
+			The number of border states and cross edges is also highly dependent on the partition function. It is usually best to design the partition function with specific model or modelling approach in mind in order to achieve optimal workload distribution. We will discuss different partition functions later in secntion \ref{sec:partitioning}. 
 			
-			For each kripke fragment $\kf{i}{}$, we define a relation $successors \subseteq S_{i} \times 2^\params \times S_{i} $ to denote the set of colors for which there exist a transition from the first to the second state.
+			For each kripke fragment $\kf{i}{}$, we define a function $successors \subseteq S_{i} \rightarrow S_i \times 2^\params$ to denote the set of all successor states and relevant colour sets that enable such transition.
 			
 			\begin{center}
-				$successors = \{(s, P, s') \mid P = \{p \in \params \mid (s, p, s') \in \trans{}_{i} \}\} $
+				$successors(s) = \{(s', P) \in S_i \times 2^\params \mid s \trans{}_i s' \wedge P = \{p \in \params \mid (s, p, s') \in \trans{}_{i} \}\} $
 			\end{center}
+			
+			Symetrically, we define a function $predecessors \subseteq S_{i} \rightarrow S_i \times 2^\params$ to denote the set of all predecessor states and relevant colour sets that enable such transition.
+			
+			\begin{center}
+				$predecessors(s) = \{(s', P) \in S_i \times 2^\params \mid s' \trans{}_i s \wedge P = \{p \in \params \mid (s', p, s) \in \trans{}_{i} \}\} $
+			\end{center}						
 			
 		\section{Assumption Semantics}
 		
 			Classic interpretation of CTL formulas is not adequate for Kripke fragments. In order to accommodate for possible non-totality and distributed nature of the Kripke fragments over Kripke structure $\fullKs$, we introduce the assumption function $\as : \params \times S \times cl(\varphi) \rightarrow Bool $. The values $\as(s, p, \varphi_1)$ are called assumptions. We use the notation $\as(p, s, \varphi_1) = \perp $ to say that the value of $\as(s, p, \varphi_1)$ is undefined. By $\asemt$ we denote assumption function which is undefined for all inputs.
 			
-			Intuitively, $\as(s, p, \varphi_1) = \true$ when we can assume that $\varphi_1$ holds in state $s$ for parameter valuation $p$, $\as(s, p, \varphi_1) = \false$ when we can assume that $\varphi_1$ does not hold in state $s$ for parameter valuation $p$ and $\as(s, p, \varphi_1) = \perp$ when we cannot assume anything about validity of $\varphi_1$ in state $s$ for parameter valuation $p$.
+			Intuitively, $\as(s, p, \varphi_1) = \true$ when we can assume that $\varphi_1$ holds in a state $s$ for parameter valuation $p$, $\as(s, p, \varphi_1) = \false$ when we can assume that $\varphi_1$ does not hold in state $s$ for parameter valuation $p$ and $\as(s, p, \varphi_1) = \perp$ when we cannot assume anything about validity of $\varphi_1$ in state $s$ for parameter valuation $p$. We write $\ASphi$ to denote the set of all assumption functions for a formula $\varphi$ and parametrised kripke fragment $\kf{i}{}$.
 			
-			Undefined values are important in CTL semantics over distributed fragments, since such values can be used in places where validity of formula cannot be computed because it depends on information stored in another fragment which has not been received yet. However, a correct model checking algorithm should always provide a definitive answer for all states and parameter valuations.
+			Undefined values are important in CTL semantics over distributed fragments, since such values can be used in places where validity of formula cannot be computed because it depends on information stored in another fragment which has not been received yet. However, a correct model checking algorithm should always provide a definitive answer for all states and parameter valuations in finite time.
 			
 			For a Kripke fragment $\fullKf{i}{}$ and a formula $\varphi$, the assumption function is defined inductively on the structure of the formula $\varphi$:			
 		
@@ -216,7 +238,7 @@
     	\begin{split}
 			\true
       	\end{split}
-      & \text{\parbox{8cm}{$Q \in L(s)$}} \\
+      & \text{\parbox{8cm}{$Q \in L_i(s)$}} \\
       	\begin{split}
        		\false
       	\end{split}
@@ -238,7 +260,7 @@
       	\begin{split}
        		\false
       	\end{split}
-      & \text{\parbox{8cm}{$\as(p, s \varphi_1) = \true$}} \\
+      & \text{\parbox{8cm}{$\as(p, s, \varphi_1) = \true$}} \\
       	\begin{split}
        		\perp
       	\end{split}
@@ -278,11 +300,11 @@
     	\begin{split}
 			\true
       	\end{split}
-      & \text{\parbox{8cm}{$\exists s' \in S : s \trans{p} s' \wedge \as(p, s', \varphi_1) = \true$}} \\
+      & \text{\parbox{8cm}{$\exists s' \in S_i : s \trans{p}_i s' \wedge \as(p, s', \varphi_1) = \true$}} \\
       	\begin{split}
        		\false
       	\end{split}
-      & \text{\parbox{8cm}{$\forall s' \in S : s \trans{p} s' \Rightarrow \as(p, s', \varphi_1) = \false$}} \\
+      & \text{\parbox{8cm}{$\forall s' \in S_i : s \trans{p}_i s' \Rightarrow \as(p, s', \varphi_1) = \false$}} \\
       	\begin{split}
        		\perp
       	\end{split}
@@ -302,13 +324,13 @@
       	\end{split}
       & \text{\parbox{8cm}{exits a p-path $\pi = s_0s_1 s_2
                   \ldots$ with $s=s_0$ such that $\exists x < |\pi|$ such that 
-                  (either $\as(p, s_x, \varphi_2) = \true$ or [$s_x \in border(\ks)$ and $\as(p, s_x,  \eu{\varphi_1}{\varphi_2}) = \true])$, and $\forall 0 \leq y < x : \as(p, s_y, \varphi_1) = \true$ }} \\
+                  (either $\as(p, s_x, \varphi_2) = \true$ or [$s_x \in border(\kf{i}{})$ and $\as(p, s_x,  \eu{\varphi_1}{\varphi_2}) = \true])$, and $\forall 0 \leq y < x : \as(p, s_y, \varphi_1) = \true$ }} \\
       	\begin{split}
        		\false
       	\end{split}
       & \text{\parbox{8cm}{for all p-paths $\pi = s_0s_1 s_2
                   \ldots$ with $s=s_0$ either $\exists x < |\pi|$ such that 
-                  $(\as(p, s_x, \varphi_1) = \false$ and $\forall y \leq x : \as(p, s_y, \varphi_2) = \false)$ or $[ \forall x < |\pi| : \as(p, s_x, \varphi_2) = \false $ and $( |\pi| = \infty $ or $( s_{|\pi| - 1} \in border(\ks) $ and $ \as(p, s_{|\pi| - 1}, \eu{\varphi_1}{\varphi_2}) = \false ))]$ }} \\
+                  $(\as(p, s_x, \varphi_1) = \false$ and $\forall y \leq x : \as(p, s_y, \varphi_2) = \false)$ or $[ \forall x < |\pi| : \as(p, s_x, \varphi_2) = \false $ and $( |\pi| = \infty $ or $( s_{|\pi| - 1} \in border(\kf{i}{}) $ and $ \as(p, s_{|\pi| - 1}, \eu{\varphi_1}{\varphi_2}) = \false ))]$ }} \\
       	\begin{split}
        		\perp
       	\end{split}
@@ -328,13 +350,13 @@
       	\end{split}
       & \text{\parbox{8cm}{for all p-path $\pi = s_0s_1 s_2
                   \ldots$ with $s=s_0$ such that $\exists x < |\pi|$ such that 
-                  $[$ either $\as(p, s_x, \varphi_2) = \true$ or $(s_x \in border(\ks)$ and $\as(p, s_x,  \au{\varphi_1}{\varphi_2}) = \true)]$, and $\forall 0 \leq y < x : \as(p, s_y, \varphi_1) = \true$ }} \\
+                  $[$ either $\as(p, s_x, \varphi_2) = \true$ or $(s_x \in border(\kf{i}{})$ and $\as(p, s_x,  \au{\varphi_1}{\varphi_2}) = \true)]$, and $\forall 0 \leq y < x : \as(p, s_y, \varphi_1) = \true$ }} \\
       	\begin{split}
        		\false
       	\end{split}
       & \text{\parbox{8cm}{exists a p-path $\pi = s_0s_1 s_2
                   \ldots$ with $s=s_0$ and an index $x < |\pi|$ such that: 
-                  $(\as(p, s_x, \varphi_1) = \false$ and $\forall y \leq x : \as(p, s_y, \varphi_2) = \false)$ or $[ \forall x < |\pi| : \as(p, s_x, \varphi_2) = \false $ and $( |\pi| = \infty $ or $( s_{|\pi| - 1} \in border(\ks) $ and $ \as(p, s_{|\pi| - 1}, \eu{\varphi_1}{\varphi_2}) = \false ))]$ }} \\
+                  $(\as(p, s_x, \varphi_1) = \false$ and $\forall y \leq x : \as(p, s_y, \varphi_2) = \false)$ or $[ \forall x < |\pi| : \as(p, s_x, \varphi_2) = \false $ and $( |\pi| = \infty $ or $( s_{|\pi| - 1} \in border(\kf{i}{}) $ and $ \as(p, s_{|\pi| - 1}, \eu{\varphi_1}{\varphi_2}) = \false ))]$ }} \\
       	\begin{split}
        		\perp
       	\end{split}
@@ -344,31 +366,58 @@
 }	
 \endgroup
 
-		\section{Modelling techniques}
-	
-			To prove soundness and universlaity of our algorithm, we test it on two different modelling techniques. 
+			Here a p-path $\pi$ from a state $s_0$ is a sequence $\pi = s_0s_1\ldots$ such that ${\forall j \geq 0} : s_j \in S_i \mbox{ and } s_j \trans{p}_i s_{j+1} $.
+		
+			We define a so called semantic function $\sem : \ASphi \rightarrow \ASphi$ which takes an input assumption function $\ain$ and computes a new assumption function $\as$ as defined in this section. Note that for a Kripke fragment with total transition relation (without any border states), the value of resulting assumption function does not depend on the input assumptions. Hence for a total Kripke Structure $\ks$, we can solve the parameter synthesis problem by computing the assumption function $\mathcal{C}^{\varphi}_{\mathcal{F}}(\asemt)$ where $\kf{}{}$ is the single-fragment representation of $\ks$ resulting from the trivial partitioning as described in previous section.
+		
+			We also defined function $initialStates : cl(\phi) \times \ASphi \rightarrow S_i \times 2^\mathcal{P}$ which computes a set of states and parameters where truth of given formula is assumed.
 			
-			First techinique is based on discretization of piece-wise multi-affine models defined using Ordinary Differential Equations. More about this techinique can be found in [cite]. ODE models have rectangular state space with low number of transitions per state and good locality. Since parameters valuations are continuous, they have to be symbolically represented in form of intervals. Unfortunately, ODE models suffer from over-approximation and therefore are not very well suited for verification of properties with mixed existential and universal quantification.
+			\begin{center}
+				$initialStates(\varphi, \as) = \{ (s, p) \in S_i \times 2^\params \mid \as(s, p, \varphi) = \true \} $
+			\end{center}			
+
+		   Similarly, we use a function $validColours : cl(\phi) \times S_i \times \ASphi \rightarrow 2^\mathcal{P}	$ which returns a set of parameters for which given formula is assumed to be true in given state. 
+			
+			\begin{center}
+				$validColours(\varphi, s, \as) = \{ p \in \params \mid \as(s, p, \varphi) = \true \}$
+			\end{center}
+
+	\chapter{Modelling techiniques}
 	
-			Second technique is based on Thomas Networks which are extension of Boolean Networks. Compared to ODE models, Thomas Networks are inherently discrete. They also do not suffer from over- or under-approximation. The downside of Thomas Networks are parameters, since even small models can contain a very large number of parameters and possible parameter valuations. Usually, it is also hard to find a compact and reasonably fast symbolic representation of said parameters. The influence of parameters on transition system also tends to by much more irregular compared to ODE models. This makes them less suitable for state space distribution.
+			To prove soundness and universality of our algorithm, we test it on two different modelling techniques. 
+
+		\section{ODE models}	
+				
+			First technique is based on discretization of piece-wise multi-affine models defined using Ordinary Differential Equations (ODE). More about this techinique can be found in \cite{IFAC}. ODE models have rectangular state space with low number of transitions per state and good locality, because only transitions between adjacent states are allowed. Since parameter space is continuous, it is usually symbolically represented in form of intervals. Unfortunately, ODE models suffer from over-approximation and therefore are not very well suited for verification of properties with mixed existential and universal quantification.
+	
+		\section{Thomas Networks}
+			Second technique is based on Thomas Networks \cite{Thomas} which are extension of Boolean Networks. Compared to ODE models, Thomas Networks are inherently discrete. They also do not suffer from over- or under-approximation. The downside of Thomas Networks are parameters, since even small models can contain a very large number of parameters and possible parameter valuations. Usually, it is also hard to find a compact and reasonably fast symbolic representation of said parameters. The influence of parameters on transition system also tends to by much more irregular compared to ODE models. This makes them less suitable for state space distribution.
 			
 		\section{State Space Partitioning}
-			
+			\label{sec:partitioning}
 			One of the most important aspects of efficient distributed model checking algorithms is a suitable state space partitioning. One that minimizes the communication overhead and provides an equalized workload distribution. In particular, the partitioning should provide a regular load-balancing, ensuring that each process is responsible for a proportional part of the state space. It should also provide a good locality, minimizing the number of cross transitions and therefore reducing the communication overhead.
 			
-			The problem of computing the optimal partitioning can introduce a significant overhead into the computation. Therfore, various heuristics are considered to produce partitioning that is easy to compute and at the same time provides reasonable load-balancing and locality. One of such heuristics is a hash based partitioning which is usually used for computer and engineering systems. This partitioining does not require any prior knowledge about the structure of the state space, and therefore can be universally applied to almost any system.
+			The problem of computing the optimal partitioning can introduce a significant overhead into the computation. Therefore, various heuristics are considered to produce partitioning that is easy to compute and at the same time provides reasonable load-balancing and locality. One of such heuristics is a hash based partitioning \cite{spin} which is usually used for computer and engineering systems. This partitioining does not require any prior knowledge about the structure of the state space, and therefore can be universally applied to almost any system.
 			
-			It is based on a hash function mapping each state to a process. This approach usually results in in very good load balancing thanks to the uniformity of the hash function. However, hash based partitioning can't control the locality and therefore may introduce a high number of cross transitions into the system. This can significantly increase communication overhead.
+			It is based on a hash function which maps each state to a process. This approach usually results in in very good load balancing thanks to the uniformity of the hash function. However, hash based partitioning can't control the locality and therefore may introduce a high number of cross transitions into the system. This can significantly increase communication overhead.
 			
-			In this work, we exploit the regular structure of the state space of biochemical models [cite] in order to produce partitioning that does not suffer from this kind of locality problem. We use structural properties of the rectangular abstraction of the given parametric piece-wise multi-affine ODE model [cite]. The approximation is formed by an $n$-dimensional hyper-rectangular state space defined by $n$ state variables and by a set of thresholds for each variable. The discretization of the state space also ensures that there are only transition between adjacent states with respect to the hyper-rectangular structure.
+			In this work, we exploit the regular structure of the state space of biochemical models in order to produce partitioning that does not suffer from this kind of locality problem. We use structural properties of the rectangular abstraction of the given parametric piece-wise multi-affine ODE model \cite{IFAC}. The approximation is formed by an $n$-dimensional hyper-rectangular state space defined by $n$ state variables and by a set of thresholds for each variable. The discretization of the state space also ensures that there are only transitions between adjacent states with respect to the hyper-rectangular structure.
 			
-			Our partitioning decomposes said state space into $p$ hyper-rectangular subspaces such that all subspaces have similar state count ($p$ is the number of processes). This heuristic usually proveds good load balancing, since the states are evenly distributed across all processes. However, compared to classic hash based partitioning, it can also provide better locality thanks to the fact that transitions only occur between adjacent states. This ensures that cross transitions can originate only in states on borders of these hyper-rectangular subspaces. Which in turn provides almost minimal number of cross transitions and therefore significantly reduces the communication overhead.
+			Our partitioning decomposes said state space into $p$ hyper-rectangular subspaces such that all subspaces have similar state count ($p$ is the number of processes). This heuristic usually provides good load balancing, since the states are evenly distributed across all processes. However, compared to classic hash based partitioning, it can also provide better locality thanks to the fact, that transitions only occur between adjacent states. This ensures that cross transitions can originate only in states on borders of these hyper-rectangular subspaces. Which in turn provides almost minimal number of cross transitions and therefore significantly reduces the communication overhead.
 			
-			However, note that this is still only a heuristic and the results can be negatively influenced by the backward connectivity of the state space. Especially in systems with uneven distribution of transitions across states, better partitionings can be constructured that minimize the number of cross transitions while at the same time maintaining good load-balancing. On the other hand, our experiments demostrate that due to the fact, that we have to consider all possible parametrizations, the connectivity of the state space is significantly increased. Therefore, our heuristic can for majority of models create a partitioning that reduces the communication overhead significantly. 
+			However, note that this is still only a heuristic and the results can be negatively influenced by the backward connectivity of the state space. Especially in systems with uneven distribution of transitions across states, better partitionings can be constructured that minimize the number of cross transitions while at the same time maintaining good load-balancing. On the other hand, our experiments demostrate that due to the fact, that we have to consider all possible parametrizations, the connectivity of the state space is significantly increased. Therefore, our heuristic can for majority of models create a partitioning with almost minimal number of cross transitions. 
 			
 			Similar heuristic can be deployed also for the Thomas networks, however, this modeling thechnique has a less predictable transition system and therefore the minimal number of cross transitions is not that easily achieved. 
 			
-			
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.40]{trans.png}
+\end{center}
+\vspace*{-0.5em}
+\caption{Rectangular state space partitioning with $n = 4$. Green arrows are internal transitions, red arrows represent cross transitions.}
+\label{fig:3dresults}
+\end{figure}			
 		
 		
     \chapter{Algorithm}
@@ -387,6 +436,7 @@
 		
 		\section{Algorithm outline}
 		
+			In order to compute the assumption function $\as$ for the given kripke structure, we compute the value of $\sem(\asemt)$ by exchanging relevant assumptions between processes.
 			The main idea of the algorithm is described in REFERENCE and resembles other CTL model checking algorithms.
 			
 			\begin{algorithmic}[1]
@@ -404,39 +454,7 @@
     	
     	\section{Common operations}
     		
-    		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrised kripke fragment $\fullKs$ as an input of the algorithm.
-			
-			Intuitively, function $validStates : cl(\phi) \times \ASphi \rightarrow S \times 2^\mathcal{P} $ computes a set of states and parameters where truth of given formula is assumed. It is also responsible for handling of boolean operators, since these can be computed without any inter-process communication. 
-			
-			\begin{center}
-				$validStates(\phi_1 \wedge \phi_2, \as) = \{ (s, p) \mid \as(s, p, \phi_2) = \true \wedge \as(s, p, \phi_2) = \true \} $
-			\end{center}
-			
-			\begin{center}
-				$validStates(\phi_1 \vee \phi_2, \as) = \{ (s, p) \mid \as(s, p, \phi_2) = \true \vee \as(s, p, \phi_2) = \true \} $
-			\end{center}
-			
-			\begin{center}
-				$validStates(\neg\phi, \as) = \{ (s, p) \mid \as(s, p, \phi) = \false \} $
-			\end{center}
-			
-			\begin{center}
-				$validStates(\true, \as) = \{ (s, p) \mid s \in S \wedge p \in \params \} $
-			\end{center}
-
-			\begin{center}
-				$validStates(\false, \as) = \emptyset $
-			\end{center}
-						
-			\begin{center}
-				$validStates(\phi, \as) = \{ (s, p) \mid \as(s, p, \phi) = \true \} $
-			\end{center}
-
-			Another useful function is $validColours : cl(\phi) \times S \times \ASphi \rightarrow 2^\mathcal{P}	$ which returns a set of parameters for which given formula is assumed to be true in given state. 
-			
-			\begin{center}
-				$validColours(\phi, state, \as) = \{ p | (state, p) \in validStates \}$
-			\end{center}
+    		In this section, we define functions used to simplify the algorithm description. Let us fix a formula $\phi$ and a parametrised kripke fragment $\fullKs$ as an input of the algorithm.						
 			
 			We also define function $update: \ASphi \times S \times 2^{\params} \times tcl(\phi) \rightarrow \ASphi $ which takes current assumptions, a state, set of parameters and a formula and returns assumptions updated so that for all parameters of the given set, formula holds in given state.
 			
@@ -590,57 +608,55 @@
 	
 	\chapter{Implementation}
 
-		Our algorithm is implemented in a proof-of-concept distributed CTL model checker available in the github repositiory of Sybila organization [cite]. In this section we briefly discuss the implementation details of this project. 
+		Our algorithm is implemented in a proof-of-concept distributed CTL model checker available in the github repositiory of Sybila organization \cite{github}. In this chapter, we discuss the implementation details of this project. 
 		
-		Although most of the core model checking module is fully operational and stable, the project is still mainly in experimental phase, since new features, heuristics and modelling approaches are still being considered and reevaluated.
-
-		\section{Architecture}
+		Although the core model checking module is fully operational and stable, the project is still mainly in experimental phase, since new features, heuristics and modelling approaches are still being considered and reevaluated.
 		
-			In order to provde greater flexibility and ease of development, majority of the project is implemented in Java. However, several parts still require C++ code reused from similar previous projects. 
+		In order to provide greater flexibility and ease of development, majority of the project is implemented in Java. However, several parts still require C++ code reused from similar previous projects. The whole project is built using Gradle build system.
 			
-			The distributed environment is mainly provided by MPJ [cite], Java implementation of standard MPI interface. However, the model checking algorithm itself does not depend on any concrete communication library and can be easily adapted to any similar distributed communication tool.
+		The distributed environment is mainly provided by MPJ, Java implementation of standard MPI interface. However, the model checking algorithm itself does not depend on any concrete communication library and can be easily adapted to any similar distributed communication tool.
 			
-			The whole project is divided into several modules in order to maximize extensibility and modifiability during future development. This section provides a quick overview of each of these modules.
+		The whole project is divided into several modules in order to maximize extensibility and modifiability during future development. This section provides a quick overview of each of these modules.
 			
-			\subsection{CTL Parser}
+		\section{CTL Parser}
 			
-				In order to provide user with easy way to input CTL formulas, this module implements a parser for modified formula specification language used in BioDivIne[cite]. 
+			In order to provide user with easy way to input CTL formulas, this module implements a parser for modified formula specification language used in Biodivine \cite{biodivine}. 
 				
-				The original parser only supports LTL formulas, therefore the grammar has been modified to allow for CTL operators. However, user familiar with the original LTL syntax should have no problems adapting to the CTL syntax.
+			The original parser only supports LTL formulas, therefore the grammar has been modified to allow for CTL operators. However, user familiar with the original LTL syntax should have no problems adapting to the CTL syntax.
 				
-				The grammar is written in Antlr parser generator and apart from the whole range of CTL and boolean operators supports also boolean and float propositions.
+			The grammar is written in Antlr parser generator and apart from the whole range of CTL and boolean operators supports also boolean and float propositions.
 				
-				This module also handles the transformation of user provided formula into minimal set of operators supported by the main model checker.
+			This module also handles the transformation of provided formula into minimal set of operators supported by the main model checker.
 				
-			\subsection{Model Checker}
+		\section{Model Checker}
 			
-				This is the core module implementing the model checking algorithm described in this work. It defines the interfaces and contracts representing the kripke fragment, parameter set, partition function and inter-process communication.
+			This is the core module implementing the model checking algorithm described in this work. It defines the interfaces and contracts representing the kripke fragment, parameter set, partition function and inter-process communication.
 				
-				It is completely independant on the implementation of said interfaces, and therefore provides great flexibility and extensibility. This module also provides partial implementations of some of these interfaces to ease the development of model related modules. 
+			It is completely independant on the implementation of said interfaces, and therefore provides great flexibility and extensibility. This module also provides partial implementations of some of these interfaces to ease the development of model related modules. 
 				
-				This module also implements the termination detection algorithm designed by Safra[cite]. The algorithm itself can't be easily overriden, however, the communication is again isolated into one, easily replacable class, so the support for different communcation libraries can be easily provided.
+			This module also implements the termination detection algorithm designed by Safra[cite]. The algorithm itself can't be easily overriden, however, the communication is again isolated into one, easily replacable class, so the support for different communcation libraries can be easily provided.
 	
-			\subsection{ODE Abstraction}
+		\section{ODE Abstraction}
 			
-				This module is based on the ODE state space generator from the LTL model checking tool BioDiViNe. The code responsible for model parsing and abstraction calculation is reused directly and Java Native Interface(JNI) is used to extract resulting model into corresponding Java data structures.
+			This module is based on the ODE state space generator from the LTL model checking tool BioDiViNe. The code responsible for model parsing and abstraction calculation is reused directly and Java Native Interface(JNI) is used to extract resulting model into corresponding Java data structures.
 				
-				The state space generator responsible for evaluation of atomic propositions and computation of successors/predecessors is also based on code from the BioDiViNe project. However, this section has been completely rewritten into Java and adapted to the CTL paradigm. This minimizes the number of slow JNI calls to existing C++ code. This new state space generator also features several bugfixes and speed optimalizations.
+			The state space generator responsible for evaluation of atomic propositions and computation of successors/predecessors is also based on code from the BioDiViNe project. However, this section has been completely rewritten into Java and adapted to the CTL paradigm. This minimizes the number of slow JNI calls to existing C++ code. This new state space generator also features several bugfixes and speed optimalizations.
 				
-				This module also implements the rectangular state space partition function described in this work. The parameter set is implemented using Google Guava Range Set[cite] which provides great flexibility and huge feature set while maintaining good performance.
+			This module also implements the rectangular state space partition function described in this work. The parameter set is implemented using Google Guava Range Set[cite] which provides great flexibility and huge feature set while maintaining good performance.
 				
-			\subsection{Thomas Network Abstraction}
+		\subsection{Thomas Network Abstraction}
 
-				This module is based on the Thomas Network state space generator from the LTL model checking tool Parsybone. Similarly to the ODE Abstraction module, most of the model parsing and preprocessing is done using the original code and extracted using JNI. 
+			This module is based on the Thomas Network state space generator from the LTL model checking tool Parsybone. Similarly to the ODE Abstraction module, most of the model parsing and preprocessing is done using the original code and extracted using JNI. 
 				
-				The parameter set is implemented using a EWAH Compressed Bitmap[cite], which provides decent performance even on large parameter sets and is very easy to use. 
+			The parameter set is implemented using a EWAH Compressed Bitmap[cite], which provides decent performance even on large parameter sets and is very easy to use. 
 				
-				At the moment of writing, this module does not provide any good partitioning implementation, since much of this functionality is still in developement and most of the current implementation is subject to change. However, sequential computation on one processing node is fully supported.
+			At the moment of writing, this module does not provide any good partitioning implementation, since much of this functionality is still in developement and most of the current implementation is subject to change. However, sequential computation on one processing node is fully supported.
 				
-			\subsection{Frontend}			
+		\subsection{Frontend}			
 			
-				Frontend module ties together the functionality of all modules into several runnable utilities. However, the documentation and general outilne and output format of these tools have not yet been finalized and is subject to change. Therfore the code in this module should be taken more as an example of usage of different modules.	
+			Frontend module ties together the functionality of all modules into several runnable utilities. However, the documentation and general outilne and output format of these tools have not yet been finalized and is subject to change. Therfore the code in this module should be taken more as an example of usage of different modules.	
 				
-		\chapter{Experimental Evaluation}
+	\chapter{Experimental Evaluation}
 
 			The aim of this chapter is to demonstrate the soundness of our algorithm on two biologically relevant models. First model is fairly simple and is used for benchmarking purposes, since it can be easily scaled and modified while maintaining similar properties and structure. Second model exhibits non trivial behaviour and is used to demonstrate the ability of our method to correctly detect such behaviour. 
 		
@@ -763,6 +779,7 @@
 						\newpage
 									\newpage			\newpage
 			\section{Case study}
+				\label{sec:case}
 			
 				To demonstrate the applicability of the algorithm, we investigate a well-known ODE model [cite] which represents a two-gene regulatory network describing interaction of the tumor suppressor protein $pRB$ and the central transcription factor $E2F1$ (see Fig.~\ref{fig:genmodel} (left)). This network represents the crucial mechanism governing the transition from $G_1$ to $S$ phase in the mammalian cell cycle. In the $G_1$-phase the cell makes an important decision. In high concentration levels, $E2F1$ activates the $G_1/S$ transition mechanism. In low concentration of $E2F1$, committing to $S$-phase is refused and that way the cell avoids DNA replication.
 				
